@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AltGame | Chess Master Wood Edition</title>
+    <style>
+        :root {
+            --primary-ag: #00f2fe;
+            --accent-ag: #4facfe;
+            --dark-bg: #0d0d0d;
+            --wood-frame: #3d2b1f;
+            --wood-light: #decba4;
+            --wood-dark: #5c4033;
+            --piece-white: #ffffff;
+            --piece-black: #000000;
+        }
+
+        body {
+            background-color: var(--dark-bg);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0; padding: 20px;
+        }
+
+        .game-layout { display: flex; gap: 25px; margin-top: 20px; }
+
+        .side-panel {
+            width: 160px; background: rgba(255,255,255,0.03);
+            padding: 15px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);
+            min-height: 480px;
+        }
+
+        #board {
+            display: grid; grid-template-columns: repeat(8, 60px); grid-template-rows: repeat(8, 60px);
+            border: 8px solid var(--wood-frame); box-shadow: 0 0 60px rgba(0,0,0,0.7);
+        }
+
+        .square { width: 60px; height: 60px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .light { background-color: var(--wood-light); }
+        .dark { background-color: var(--wood-dark); }
+        .selected { background-color: rgba(0, 242, 254, 0.5) !important; }
+        
+        .piece { font-size: 48px; user-select: none; z-index: 10; text-shadow: 2px 2px 4px rgba(0,0,0,0.4); }
+
+        .info-bar {
+            margin-bottom: 20px; text-align: center; padding: 12px 25px;
+            background: #1a1a1a; border-radius: 30px; border: 1px solid var(--primary-ag);
+        }
+
+        .controls { margin-top: 25px; display: flex; gap: 15px; }
+
+        button { padding: 10px 20px; border-radius: 25px; border: none; cursor: pointer; font-weight: bold; transition: 0.3s; }
+        .btn-undo { background: #ff4d4d; color: white; }
+        .btn-mode { background: #f1c40f; color: black; }
+        .btn-restart { background: var(--accent-ag); color: white; }
+
+        /* Toast Notification Modern */
+        .toast {
+            position: fixed; bottom: 20px; right: 20px; background: var(--accent-ag);
+            color: white; padding: 12px 25px; border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3); display: none; z-index: 2000;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Modals */
+        .modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.92); display: none; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(10px);
+        }
+        .modal-content { background: #1a1a1a; padding: 40px; border-radius: 25px; border: 2px solid var(--primary-ag); text-align: center; }
+        .promotion-grid { display: flex; gap: 20px; margin-top: 30px; }
+        .promo-card { background: #2a2a2a; padding: 20px; border-radius: 15px; cursor: pointer; font-size: 55px; width: 110px; }
+        
+        .captured-pieces { display: flex; flex-wrap: wrap; gap: 8px; font-size: 28px; }
+    </style>
+</head>
+<body>
+
+    <div class="info-bar">
+        <span id="turn-info">GILIRAN: PUTIH</span> | <span id="game-mode-text">MODE: VS AI</span>
+    </div>
+
+    <div class="game-layout">
+        <div class="side-panel">
+            <h4 style="color:var(--primary-ag); text-align:center;">DIKONSUMSI (HITAM)</h4>
+            <div id="captured-black" class="captured-pieces"></div>
+        </div>
+
+        <div id="board"></div>
+
+        <div class="side-panel">
+            <h4 style="color:var(--primary-ag); text-align:center;">DIKONSUMSI (PUTIH)</h4>
+            <div id="captured-white" class="captured-pieces"></div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <button class="btn-mode" onclick="toggleMode()">GANTI MODE</button>
+        <button class="btn-undo" onclick="undo()" id="undo-btn">UNDO (1)</button>
+        <button class="btn-restart" onclick="location.reload()">RESTART</button>
+    </div>
+
+    <div id="promo-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h2 style="color:var(--primary-ag)">PROMOSI PION</h2>
+            <div class="promotion-grid" id="promo-options"></div>
+        </div>
+    </div>
+
+    <div id="win-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h1 id="win-title" style="color:var(--primary-ag)">SKAKMAT!</h1>
+            <h3 id="win-text"></h3>
+            <button class="btn-restart" onclick="location.reload()">MAIN LAGI</button>
+        </div>
+    </div>
+
+    <script>
+        const boardElement = document.getElementById('board');
+        const turnInfo = document.getElementById('turn-info');
+        const capWhite = document.getElementById('captured-white');
+        const capBlack = document.getElementById('captured-black');
+
+        let selectedSquare = null;
+        let currentTurn = 'white';
+        let gameMode = 'ai';
+        let history = []; 
+        let undoCount = { white: 1, black: 1 }; // Batasan Undo hanya 1 kali
+
+        const pieces = {
+            white: { k: '♔', q: '♕', r: '♖', b: '♗', n: '♘', p: '♙' },
+            black: { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' }
+        };
+
+        const pieceValues = { 'p': 10, 'n': 30, 'b': 30, 'r': 50, 'q': 90, 'k': 900 };
+
+        let gameState = [
+            ['r','n','b','q','k','b','n','r'],
+            ['p','p','p','p','p','p','p','p'],
+            ['','','','','','','',''], ['','','','','','','',''],
+            ['','','','','','','',''], ['','','','','','','',''],
+            ['P','P','P','P','P','P','P','P'],
+            ['R','N','B','Q','K','B','N','R']
+        ];
+
+        history.push(JSON.stringify(gameState));
+
+        function toggleMode() {
+            gameMode = (gameMode === 'ai') ? 'pvp' : 'ai';
+            document.getElementById('game-mode-text').innerText = `MODE: ${gameMode.toUpperCase()}`;
+            showToast(`Mode diganti ke: ${gameMode.toUpperCase()}`);
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('game-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'game-toast';
+                toast.className = 'toast';
+                document.body.appendChild(toast);
+            }
+            toast.innerText = message;
+            toast.style.display = 'block';
+            setTimeout(() => { toast.style.display = 'none'; }, 2500);
+        }
+
+        const playSound = (freq, duration) => {
+            try {
+                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.setValueAtTime(freq, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+                osc.start(); osc.stop(ctx.currentTime + duration);
+            } catch(e){}
+        };
+
+        const playWinSound = () => {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            for(let i=0; i<15; i++) {
+                setTimeout(() => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.frequency.setValueAtTime(400 + Math.random() * 600, ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+                    osc.start(); osc.stop(ctx.currentTime + 0.5);
+                }, i * 60);
+            }
+        };
+
+        function render() {
+            boardElement.innerHTML = '';
+            const kPos = findKing(currentTurn);
+            const isCheck = isSquareAttacked(kPos.r, kPos.c, currentTurn === 'white' ? 'black' : 'white');
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    const sq = document.createElement('div');
+                    sq.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
+                    if (isCheck && gameState[r][c]?.toLowerCase() === 'k' && 
+                       ((currentTurn === 'white' && gameState[r][c] === 'K') || (currentTurn === 'black' && gameState[r][c] === 'k'))) {
+                        sq.style.backgroundColor = "#ff4d4d";
+                    }
+                    const char = gameState[r][c];
+                    if (char) {
+                        const p = document.createElement('div');
+                        p.className = 'piece';
+                        const isW = char === char.toUpperCase();
+                        p.innerText = isW ? pieces.white[char.toLowerCase()] : pieces.black[char];
+                        p.style.color = isW ? "var(--piece-white)" : "var(--piece-black)";
+                        sq.appendChild(p);
+                    }
+                    sq.onclick = () => handleClick(r, c);
+                    boardElement.appendChild(sq);
+                }
+            }
+        }
+
+        function findKing(color) {
+            const t = color === 'white' ? 'K' : 'k';
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) if(gameState[r][c] === t) return {r, c};
+            return {r: 0, c: 0};
+        }
+
+        function isSquareAttacked(r, c, atkCol) {
+            for(let i=0; i<8; i++) for(let j=0; j<8; j++) {
+                const p = gameState[i][j];
+                if(p && (atkCol === 'white' ? p === p.toUpperCase() : p === p.toLowerCase())) {
+                    if(isBasicMove(i, j, r, c, p, true)) return true;
+                }
+            }
+            return false;
+        }
+
+        function isBasicMove(fR, fC, tR, tC, piece, ignoreCheck = false) {
+            if (fR === tR && fC === tC) return false;
+            const dr = Math.abs(tR - fR), dc = Math.abs(tC - fC);
+            const p = piece.toLowerCase(), isW = piece === piece.toUpperCase();
+            const target = gameState[tR][tC];
+            if (!ignoreCheck && target && (target === target.toUpperCase()) === isW) return false;
+
+            switch (p) {
+                case 'p':
+                    const dir = isW ? -1 : 1;
+                    if (fC === tC && !target) {
+                        if (tR - fR === dir) return true;
+                        if (fR === (isW?6:1) && tR - fR === 2*dir && !gameState[fR+dir][fC]) return true;
+                    }
+                    if (dr === 1 && dc === 1 && target) return true;
+                    return false;
+                case 'r': return (fR === tR || fC === tC) && isPathClear(fR, fC, tR, tC);
+                case 'n': return (dr === 2 && dc === 1) || (dr === 1 && dc === 2);
+                case 'b': return (dr === dc) && isPathClear(fR, fC, tR, tC);
+                case 'q': return (dr === dc || fR === tR || fC === tC) && isPathClear(fR, fC, tR, tC);
+                case 'k': return dr <= 1 && dc <= 1;
+                default: return false;
+            }
+        }
+
+        function isPathClear(fR, fC, tR, tC) {
+            const sR = tR === fR ? 0 : (tR > fR ? 1 : -1), sC = tC === fC ? 0 : (tC > fC ? 1 : -1);
+            let cR = fR + sR, cC = fC + sC;
+            while (cR !== tR || cC !== tC) { if (gameState[cR][cC]) return false; cR += sR; cC += sC; }
+            return true;
+        }
+
+        function handleClick(r, c) {
+            if (gameMode === 'ai' && currentTurn === 'black') return;
+            const char = gameState[r][c];
+            const isW = char && char === char.toUpperCase();
+            if (selectedSquare) {
+                if (char && ((currentTurn === 'white' && isW) || (currentTurn === 'black' && !isW))) {
+                    selectedSquare = {r, c}; render();
+                    boardElement.children[r*8+c].classList.add('selected');
+                } else {
+                    executeMove(selectedSquare.r, selectedSquare.c, r, c);
+                    selectedSquare = null;
+                }
+            } else if (char && ((currentTurn === 'white' && isW) || (currentTurn === 'black' && !isW))) {
+                selectedSquare = {r, c}; render();
+                boardElement.children[r*8+c].classList.add('selected');
+            }
+        }
+
+        function executeMove(fR, fC, tR, tC) {
+            let piece = gameState[fR][fC];
+            if (!isBasicMove(fR, fC, tR, tC, piece)) return;
+
+            const oldT = gameState[tR][tC];
+            gameState[tR][tC] = piece; gameState[fR][fC] = '';
+            
+            const kPos = findKing(currentTurn);
+            if (isSquareAttacked(kPos.r, kPos.c, currentTurn === 'white' ? 'black' : 'white')) {
+                gameState[fR][fC] = piece; gameState[tR][tC] = oldT;
+                return;
+            }
+
+            if ((piece === 'P' || piece === 'p') && (tR === 0 || tR === 7)) {
+                if(gameMode === 'ai' && currentTurn === 'black') {
+                    gameState[tR][tC] = 'q'; finalizeMove(oldT);
+                } else {
+                    showPromoModal(tR, tC, currentTurn, oldT);
+                }
+                return;
+            }
+            finalizeMove(oldT);
+        }
+
+        function finalizeMove(oldT) {
+            if (oldT) addToGraveyard(oldT);
+            history.push(JSON.stringify(gameState));
+            
+            currentTurn = (currentTurn === 'white' ? 'black' : 'white');
+            
+            const k = findKing(currentTurn);
+            const inCheck = isSquareAttacked(k.r, k.c, currentTurn === 'white' ? 'black' : 'white');
+
+            if (isCheckmate(currentTurn)) { 
+                showWinModal(); 
+                return; 
+            } else if (inCheck) {
+                playSound(550, 0.1); 
+                setTimeout(() => playSound(400, 0.1), 80); 
+            } else {
+                playSound(150, 0.1);
+            }
+
+            turnInfo.innerText = `GILIRAN: ${currentTurn.toUpperCase()}`;
+            document.getElementById('undo-btn').innerText = `UNDO (${undoCount[currentTurn]})`;
+            render();
+            // PERBAIKAN BUG AI: Memastikan AI Hitam bergerak di gilirannya
+            if (gameMode === 'ai' && currentTurn === 'black') setTimeout(makeAIMove, 600);
+        }
+
+        function makeAIMove() {
+            let moves = [];
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
+                let p = gameState[r][c];
+                // AI mencari bidak Hitam (huruf kecil)
+                if(p && p === p.toLowerCase()) {
+                    for(let tr=0; tr<8; tr++) for(let tc=0; tc<8; tc++) {
+                        if (isBasicMove(r, c, tr, tc, p)) {
+                            const tmp = gameState[tr][tc];
+                            gameState[tr][tc] = p; gameState[r][c] = '';
+                            const k = findKing('black');
+                            const safe = !isSquareAttacked(k.r, k.c, 'white');
+                            gameState[r][c] = p; gameState[tr][tc] = tmp;
+                            if(safe) {
+                                let score = 0;
+                                if(tmp) score += pieceValues[tmp.toLowerCase()] * 10;
+                                moves.push({fR:r, fC:c, tR:tr, tC:tc, score: score + Math.random() * 5});
+                            }
+                        }
+                    }
+                }
+            }
+            if(moves.length > 0) {
+                moves.sort((a, b) => b.score - a.score);
+                const best = moves[0];
+                executeMove(best.fR, best.fC, best.tR, best.tC);
+            }
+        }
+
+        function showPromoModal(r, c, col, oldT) {
+            const m = document.getElementById('promo-modal'), g = document.getElementById('promo-options');
+            g.innerHTML = ''; m.style.display = 'flex';
+            const opts = col === 'white' ? [{id:'Q',n:'♕'},{id:'R',n:'♖'},{id:'B',n:'♗'},{id:'N',n:'♘'}] : [{id:'q',n:'♛'},{id:'r',n:'♜'},{id:'b',n:'♝'},{id:'n',n:'♞'}];
+            opts.forEach(o => {
+                const d = document.createElement('div'); d.className = 'promo-card'; d.innerText = o.n;
+                d.style.color = col === 'white' ? "var(--piece-white)" : "var(--piece-black)";
+                d.onclick = () => { gameState[r][c] = o.id; m.style.display = 'none'; finalizeMove(oldT); };
+                g.appendChild(d);
+            });
+        }
+
+        function isCheckmate(col) {
+            const k = findKing(col);
+            const inC = isSquareAttacked(k.r, k.c, col === 'white' ? 'black' : 'white');
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
+                const p = gameState[r][c];
+                if(p && (col==='white' ? p===p.toUpperCase() : p===p.toLowerCase())) {
+                    for(let tr=0; tr<8; tr++) for(let tc=0; tc<8; tc++) {
+                        if(isBasicMove(r, c, tr, tc, p)) {
+                            const tmp = gameState[tr][tc]; gameState[tr][tc] = p; gameState[r][c] = '';
+                            const k2 = findKing(col); const safe = !isSquareAttacked(k2.r, k2.c, col==='white'?'black':'white');
+                            gameState[r][c] = p; gameState[tr][tc] = tmp;
+                            if(safe) return false;
+                        }
+                    }
+                }
+            }
+            return inC;
+        }
+
+        function showWinModal() {
+            const w = currentTurn === 'white' ? 'HITAM' : 'PUTIH';
+            document.getElementById('win-text').innerText = `Player ${w} Menang!`;
+            document.getElementById('win-modal').style.display = 'flex';
+            playWinSound();
+        }
+
+        function undo() {
+            // Undo hanya bisa dilakukan jika jatah masih ada (1 kali per player)
+            if (history.length > 1 && undoCount[currentTurn] > 0) {
+                history.pop(); gameState = JSON.parse(history[history.length - 1]);
+                undoCount[currentTurn]--; 
+                currentTurn = (currentTurn === 'white' ? 'black' : 'white');
+                render();
+                turnInfo.innerText = `GILIRAN: ${currentTurn.toUpperCase()}`;
+                document.getElementById('undo-btn').innerText = `UNDO (${undoCount[currentTurn]})`;
+            }
+        }
+
+        function addToGraveyard(char) {
+            const isW = char === char.toUpperCase();
+            const list = isW ? capWhite : capBlack;
+            const s = document.createElement('span');
+            s.innerText = isW ? pieces.white[char.toLowerCase()] : pieces.black[char];
+            s.style.color = isW ? "var(--piece-white)" : "var(--piece-black)";
+            list.appendChild(s);
+        }
+
+        render();
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AltGame | Premium Game Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+    <div class="logo">
+    <img src="LOGO AG.png" alt="AltGame Logo" id="logo-ag" onclick="openProfile()" style="width: 40px; cursor: pointer;">
+</div>
+        <div class="brand-name">AltGame</div>
+    </div>
+    
+    <div class="search-container">
+        <input type="text" id="gameSearch" placeholder="Cari Game atau Voucher..." onkeyup="filterGames()">
+    </div>
+
+    <nav>
+        <a href="https://saweria.co/altgame" target="_blank" class="donate-btn">☕ Support</a>
+    </nav>
+</header>
+
+<main>
+    <div class="nav-menu">
+        <div class="nav-item active" onclick="switchTab('beranda')">🏠 BERANDA</div>
+        <div class="nav-item" onclick="switchTab('leaderboard')">🏆 LEADERBOARD</div>
+    </div>
+
+    <div id="tab-beranda">
+        <div class="hero-banner-carousel">
+    <div class="carousel-container" id="carousel">
+        <img src="PROMO_1.png" alt="Promo 1">
+        <img src="PROMO_2.png" alt="Promo 2">
+        <img src="PROMO_3.png" alt="Promo 3">
+        <img src="PROMO_4.png" alt="Promo 4">
+        <img src="PROMO_5.png" alt="Promo 5">
+    </div>
+
+    <button class="carousel-btn prev" onclick="prevSlide()">&#10094;</button> <button class="carousel-btn next" onclick="nextSlide()">&#10095;</button> </div>
+        <button id="toggle-mode" onclick="ubahTampilan()" style="padding: 10px; margin: 10px; cursor: pointer;">
+    📱 Mode Mobile
+</button>
+        
+        <h2 style="padding-left: 2.5%;">🔥 POPULER SEKARANG!</h2>
+        <div class="container" id="game-list">
+            </div>
+    </div>
+    <div id="tab-leaderboard" style="display: none;" class="container">
+        <div class="supporter-wrapper" style="width: 100%; margin-top: 50px;">
+            <div class="supporter-label">🏆 TOP SUPPORTERS:</div>
+            <div class="supporter-list-static">
+                <p>1. mpruy - Rp 1.000</p>
+                <p>2. Anonim - 1.000</p>
+            </div>
+        </div>
+    </div>
+
+
+    <div id="game-display">
+        <button class="back-btn" onclick="tutupGame()">← KEMBALI KE LOBBY</button>
+        <div class="iframe-wrapper">
+            <iframe id="game-frame" src="" frameborder="0" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <div class="container" id="game-list">
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/snake-attack')">
+            <div class="badge">Upcoming</div>
+            <img src="LOGO SNAKE EATER.png" alt="Snake">
+            <h3>Snake Eater</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/chess-multiplayer')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/chess-multiplayer/icon/chess-multiplayer.png" alt="Chess">
+            <h3>Pro Chess</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/rally-racer')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/rally-racer/icon/rally-racer.png" alt="Racing">
+            <h3>Rally Racer</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/pixel-adventure')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/pixel-adventure/icon/pixel-adventure.png" alt="Pixel">
+            <h3>Pixel Adventure</h3>
+        </div>
+
+        <div class="game-card local-game" onclick="mainkanGame('games/solitaire.html')">
+            <div class="badge-local">Update</div>
+            <img src="LOGO SOLITAIRE.png" alt="Solitaire">
+            <h3>Spider Solitaire</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/moto-x3m')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/moto-x3m/icon/moto-x3m.png" alt="Moto">
+            <h3>Moto X3M</h3>
+        </div>
+
+        <div class="game-card local-game" onclick="mainkanGame('games/TicTacToe.html')">
+            <div class="badge-local">Update</div>
+            <img src="LOGO TIC TAC TOE.png" alt="TicTacToe">
+             <h3>Tic-Tac-Toe</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/archery-world-tour')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/archery-world-tour/icon/archery-world-tour.png" alt="Archery">
+            <h3>Archery World</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/tower-crash-3d')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/tower-crash-3d/icon/tower-crash-3d.png" alt="Tower">
+            <h3>Tower Crash</h3>
+        </div>
+
+        <div class="game-card" onclick="mainkanGame('https://www.gamepix.com/live/sudoku-classic')">
+            <div class="badge">Coming Soon</div>
+            <img src="https://assets.gamepix.com/games/sudoku-classic/icon/sudoku-classic.png" alt="Sudoku">
+            <h3>Classic Sudoku</h3>
+        </div>
+        <div class="game-card local-game" onclick="mainkanGame('games/ChessMaster.html')">
+    <div class="badge-local">New</div>
+    <img src="LOGO CHESS MASTER.png" alt="ChessMaster">
+    <h3>Chess Master AG</h3>
+</div>
+    </div>
+<footer>
+    <p>&copy; 2026 <strong>AltGame</strong> - All Rights Reserved.</p>
+    <p class="copyright-tag">Created with Passion by <span class="author">@altooyz</span></p>
+</footer>
+
+<script src="script.js"></script>
+<div id="profileModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeProfile()">&times;</span>
+            <img src="LOGO_AG.png" alt="AltGame Logo" style="width: 80px; margin-bottom: 10px;">
+            <h2 style="color: #00d4ff;">AltGame Studio</h2>
+            <hr style="border: 0.5px solid #333;">
+            <div style="text-align: left; font-size: 14px; padding: 10px;">
+                <p><strong>📅 Rilis:</strong> April 2026</p>
+                <p><strong>👤 Pengembang:</strong> Altooyz & Team</p>
+                <p><strong>🎮 Visi:</strong> Platform game ringan nomor 1.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script> </body>
+</body>
+</html>
