@@ -1,0 +1,1031 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Outbreak: Pixel RPG v2.2 (Dev Edition)</title>
+    <style>
+        body {
+            background-color: #0f0f14;
+            color: #fff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #ff3333;
+            text-shadow: 0 0 10px rgba(255, 51, 51, 0.6);
+            margin: 0 0 5px 0;
+            font-size: 28px;
+        }
+
+        .screen {
+            background: rgba(15, 15, 20, 0.98);
+            border: 4px solid #ff3333;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 25px rgba(255, 51, 51, 0.3);
+            text-align: center;
+            width: 480px;
+            position: relative;
+        }
+
+        button {
+            background-color: #ff3333;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 8px;
+            width: 100%;
+            transition: 0.2s;
+        }
+
+        button:hover {
+            background-color: #ff6666;
+            box-shadow: 0 0 10px #ff3333;
+        }
+
+        select {
+            background-color: #000;
+            color: #ff3333;
+            border: 2px solid #ff3333;
+            padding: 8px;
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace;
+            width: 100%;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        .shop-scroll-area {
+            max-height: 280px;
+            overflow-y: auto;
+            margin-top: 10px;
+            padding-right: 5px;
+            text-align: left;
+        }
+
+        .shop-scroll-area::-webkit-scrollbar { width: 6px; }
+        .shop-scroll-area::-webkit-scrollbar-track { background: #111; }
+        .shop-scroll-area::-webkit-scrollbar-thumb { background: #ff3333; border-radius: 3px; }
+
+        .shop-section-title {
+            color: #ffeb3b;
+            font-weight: bold;
+            font-size: 13px;
+            margin: 12px 0 6px 0;
+            border-bottom: 1px dashed #ffeb3b;
+            padding-bottom: 2px;
+        }
+
+        .shop-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #16161e;
+            padding: 8px 10px;
+            margin-bottom: 5px;
+            border: 1px solid #2a2a35;
+            font-size: 12px;
+        }
+
+        .shop-item button { width: auto; margin-top: 0; padding: 5px 10px; font-size: 11px; }
+
+        .coin-status {
+            color: #ffeb3b;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+
+        #game-container {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .hud {
+            display: flex;
+            justify-content: space-between;
+            width: 800px;
+            font-size: 16px;
+            margin-bottom: 6px;
+            color: #ff6666;
+            font-weight: bold;
+        }
+
+        canvas {
+            border: 4px solid #333;
+            background-color: #0b0b11;
+            box-shadow: 0 0 25px rgba(0, 0, 0, 0.9);
+        }
+
+        .controls-hint {
+            margin-top: 6px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+
+        #custom-alert {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            border-color: #ffeb3b;
+            box-shadow: 0 0 25px rgba(255, 235, 59, 0.5);
+            width: 340px;
+        }
+
+        /* --- LOGO CHEAT DEV RAHASIA --- */
+        .dev-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: #222;
+            color: #ff3333;
+            border: 1px solid #ff3333;
+            font-size: 10px;
+            padding: 3px 6px;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 3px;
+            animation: devBlink 2s infinite;
+        }
+        @keyframes devBlink {
+            0% { opacity: 0.5; box-shadow: 0 0 2px red; }
+            50% { opacity: 1; box-shadow: 0 0 8px red; }
+            100% { opacity: 0.5; box-shadow: 0 0 2px red; }
+        }
+
+        #dev-panel {
+            display: none;
+            background: #000;
+            border: 3px dashed #ffeb3b;
+            padding: 15px;
+            margin-top: 10px;
+            text-align: left;
+        }
+        .dev-warning-box {
+            background: #221a00;
+            border-left: 4px solid #ffeb3b;
+            padding: 8px;
+            font-size: 11px;
+            color: #ffeb3b;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="lobby-screen" class="screen">
+        <div class="dev-badge" onclick="accessDevPanel()">[🛠️ DEV]</div>
+
+        <h1>ZOMBIE OUTBREAK</h1>
+        <p style="color: #888; font-size: 12px; margin-top: -5px;">Weaponry RPG Edition v2.2 (Dev Cheat Panel)</p>
+        
+        <div class="coin-status">💰 KOIN KAMU: <span id="lobby-coins">0</span></div>
+
+        <div id="dev-panel">
+            <div style="color: #ffeb3b; font-weight: bold; font-size: 13px; margin-bottom: 5px;">🛠️ CHIEF DEVELOPER CONTROL PANEL</div>
+            <div class="dev-warning-box">
+                <b>PENGINGAT BALANCING:</b><br>
+                - Durasi peluru homing Boss di-lock 4 detik.<br>
+                - Sniper (AWM) di-nerf maksimal 5% HP untuk kategori Boss.<br>
+                - Gunakan fitur koin di bawah murni untuk pengetesan stat armor/HP!
+            </div>
+            <div style="display: flex; gap: 5px;">
+                <button onclick="cheatCoins(999999)" style="background: #2ecc71; color: black; margin-top: 0; font-size: 11px;">+999K KOIN</button>
+                <button onclick="cheatCoins(0)" style="background: #e74c3c; color: white; margin-top: 0; font-size: 11px;">RESET KOIN</button>
+            </div>
+        </div>
+
+        <div style="text-align: left; background: #16161e; padding: 10px; margin: 10px 0; border: 2px solid #ff3333; font-size: 13px;">
+            <div style="color: #ffeb3b; font-weight: bold; margin-bottom: 5px;">SIAPKAN OPERASI:</div>
+            Pilih Level Target (1 - 30):
+            <select id="level-select" onchange="updateLobbyLevelInfo()"></select>
+            <div id="level-info-text" style="color: #aaa; font-size: 11px; margin-top: 5px; line-height: 1.3;"></div>
+        </div>
+
+        <button onclick="startGame()">MULAI OPERASI</button>
+        <button onclick="openShop()" style="background-color: #ffeb3b; color: black;">🛒 PERLENGKAPAN & ARSENAL TOKO</button>
+    </div>
+
+    <div id="shop-screen" class="screen" style="display: none; border-color: #ffeb3b; box-shadow: 0 0 25px rgba(255, 235, 59, 0.4);">
+        <div style="color: #ffeb3b; font-weight: bold; font-size: 18px;">🛒 ARSENAL & UPGRADE SHOP</div>
+        <div class="coin-status" style="font-size: 14px; margin-top: 2px;">Dompet: 💰<span id="shop-coins-wallet">0</span></div>
+        
+        <div class="shop-scroll-area">
+            <div class="shop-section-title">[ UPGRADE KETAHANAN TUBUH ]</div>
+            <div class="shop-item">
+                <div>🛡️ Vest Armor (Kurangi Damage)<br><span id="info-vest" style="color: #00ffff;">Lv.1</span></div>
+                <button id="btn-upgrade-vest" onclick="buyUpgrade('vest')">Upgrade</button>
+            </div>
+            <div class="shop-item">
+                <div>❤️ Vitalitas HP (Tambah Max Darah)<br><span id="info-hp" style="color: #00ffff;">Lv.1</span></div>
+                <button id="btn-upgrade-hp" onclick="buyUpgrade('hp')">Upgrade</button>
+            </div>
+
+            <div class="shop-section-title">[ ARMAMENT / PILIHAN SENJATA ]</div>
+            <div class="shop-item">
+                <span>🔫 Pistol Standar (Default)</span>
+                <button id="btn-wpn-pistol" onclick="equipWeapon('pistol')">Gunakan</button>
+            </div>
+            <div class="shop-item">
+                <span>🔫 M4 Carbine (Tembakan Cepat)</span>
+                <button id="btn-wpn-m4" onclick="buyOrEquipWeapon('m4', 250)">Beli | 💰250</button>
+            </div>
+            <div class="shop-item">
+                <span>🔫 AK-47 Rifle (Damage Sakit)</span>
+                <button id="btn-wpn-ak47" onclick="buyOrEquipWeapon('ak47', 500)">Beli | 💰500</button>
+            </div>
+            <div class="shop-item">
+                <span>🔫 Heavy Sniper (Nerf vs Boss)*</span>
+                <button id="btn-wpn-sniper" onclick="buyOrEquipWeapon('sniper', 1000)">Beli | 💰1000</button>
+            </div>
+            <div class="shop-item">
+                <span style="color: #00ffff;">⚡ DEWA LASER (Tembus Gerombolan)</span>
+                <button id="btn-wpn-laser" onclick="buyOrEquipWeapon('laser', 2500)">Beli | 💰2500</button>
+            </div>
+
+            <div class="shop-section-title">[ REKRUTMEN SKIN SQUAD ]</div>
+            <div class="shop-item">
+                <span>🔵 Recruit Blue (Default)</span>
+                <button id="btn-skin-default" onclick="equipSkin('default')">Gunakan</button>
+            </div>
+            <div class="shop-item">
+                <span>🟢 Jungle Commando</span>
+                <button id="btn-skin-jungle" onclick="buyOrEquipSkin('jungle', 300)">Beli | 💰300</button>
+            </div>
+            <div class="shop-item">
+                <span>🟡 Spec-Ops Desert</span>
+                <button id="btn-skin-desert" onclick="buyOrEquipSkin('desert', 600)">Beli | 💰600</button>
+            </div>
+        </div>
+
+        <button onclick="closeShop()" style="background-color: #444; color: white; margin-top: 10px;">KEMBALI KE BERANDA</button>
+    </div>
+
+    <div id="custom-alert" class="screen">
+        <h3 id="alert-title" style="color: #ffeb3b; margin: 0 0 10px 0; font-size: 16px;">⚠️ LOGISTIK TOKO</h3>
+        <p id="alert-message" style="font-size: 13px; color: #fff; margin: 10px 0;"></p>
+        <button onclick="closeAlert()" style="background-color: #ffeb3b; color: black; font-weight: bold; width: auto; min-width: 80px;">OKAY</button>
+    </div>
+
+    <div id="gameover-screen" class="screen" style="display: none;">
+        <h2 style="color: #ff3333; font-size: 26px; margin: 0 0 10px 0;">SQUAD ELIMINATED!</h2>
+        <p style="font-size: 14px;">Kamu gugur digigit gelombang infeksi mayat hidup.</p>
+        <button onclick="restartGame()">ULANGI MISI</button>
+        <button onclick="backToLobby()" style="background-color: #444;">KEMBALI KE BERANDA</button>
+    </div>
+
+    <div id="win-screen" class="screen" style="display: none; border-color: #4CAF50; box-shadow: 0 0 25px rgba(76, 175, 80, 0.4);">
+        <h2 style="color: #4CAF50; font-size: 26px; margin: 0 0 10px 0;">MISSION ACCOMPLISHED!</h2>
+        <p style="color: #8af38e; font-size: 14px;">Evakuasi Berhasil! Area dibersihkan dengan selamat.</p>
+        <div style="background: #111; padding: 10px; margin: 10px 0; text-align: left; font-size: 13px; border: 1px solid #4CAF50;">
+            💰 Bonus Gaji Koin: <span id="win-bonus" style="color:#ffeb3b;">+0</span>
+        </div>
+        <button onclick="nextLevel()" style="background-color: #4CAF50; color: black;">LANJUT KE STAGE BERIKUTNYA</button>
+        <button onclick="backToLobby()" style="background-color: #444; color: white;">KEMBALI KE BERANDA</button>
+    </div>
+
+    <div id="game-container">
+        <div class="hud">
+            <div>STAGE: <span id="hud-level">1</span> <span id="hud-boss-alert" style="color: #ffeb3b; display:none;">⚠️ BOSS STAGE</span></div>
+            <div>DARAH HP: <span id="hud-hp">100/100</span></div>
+            <div>ANCAMAN SISA: <span id="hud-zombies">0</span></div>
+        </div>
+        <canvas id="gameCanvas" width="800" height="380"></canvas>
+        <div class="controls-hint">
+            Gerak: [A / D / ◀ ▶] | Lompat: [W / Space] | Tembak: [Klik Kiri / Tahan J]
+        </div>
+    </div>
+
+    <script>
+        // --- RETRO 8-BIT SOUND GENERATOR ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            try {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+                
+                if (type === 'jump') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
+                    osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                    gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now); osc.stop(now + 0.15);
+                } else if (type.startsWith('shoot')) {
+                    osc.type = type === 'shoot_laser' ? 'sine' : 'triangle';
+                    osc.frequency.setValueAtTime(type === 'shoot_sniper' ? 200 : 400, now);
+                    osc.frequency.exponentialRampToValueAtTime(50, now + 0.12);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+                    osc.start(now); osc.stop(now + 0.12);
+                } else if (type === 'hit') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(90, now);
+                    osc.frequency.linearRampToValueAtTime(30, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now); osc.stop(now + 0.08);
+                } else if (type === 'coin') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(523, now); osc.frequency.setValueAtTime(659, now + 0.07);
+                    gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now); osc.stop(now + 0.18);
+                } else if (type === 'gameover') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(250, now);
+                    osc.frequency.linearRampToValueAtTime(50, now + 0.6);
+                    gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                    osc.start(now); osc.stop(now + 0.6);
+                } else if (type === 'boss_cast') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(500, now);
+                    osc.frequency.linearRampToValueAtTime(150, now + 0.25);
+                    gain.gain.setValueAtTime(0.1, now); osc.start(now); osc.stop(now + 0.25);
+                }
+            } catch(e){}
+        }
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        const weaponArsenal = {
+            pistol: { name: "Pistol", damage: 15, fireRate: 350, pierce: false, isLaser: false, sound: 'shoot_pistol', isSniper: false },
+            m4:     { name: "M4 Carbine", damage: 18, fireRate: 140, pierce: false, isLaser: false, sound: 'shoot_m4', isSniper: false },
+            ak47:   { name: "AK-47", damage: 32, fireRate: 220, pierce: false, isLaser: false, sound: 'shoot_ak47', isSniper: false },
+            sniper: { name: "Heavy Sniper", damage: 999, fireRate: 950, pierce: false, isLaser: false, sound: 'shoot_sniper', isSniper: true },
+            laser:  { name: "Laser Dewa", damage: 500, fireRate: 150, pierce: true, isLaser: true, sound: 'shoot_laser', isSniper: false } 
+        };
+
+        const skinStyles = {
+            default: { base: '#00d2ff', head: '#ff3333' },
+            jungle:  { base: '#2ecc71', head: '#27ae60' },
+            desert:  { base: '#f1c40f', head: '#e67e22' }
+        };
+
+        // --- RPG STATE MANAGER ---
+        let totalCoins = parseInt(localStorage.getItem("z_total_coins_v2")) ?? 0;
+        if (isNaN(totalCoins)) totalCoins = 0;
+        let vestLevel = parseInt(localStorage.getItem("z_vest_lvl_v2")) || 1;
+        let hpLevel = parseInt(localStorage.getItem("z_hp_lvl_v2")) || 1;
+
+        let ownedWeapons = ["pistol"];
+        try {
+            let loadedWpns = JSON.parse(localStorage.getItem("z_owned_weapons_v2"));
+            if(Array.isArray(loadedWpns)) ownedWeapons = loadedWpns;
+        } catch(e){}
+        let activeWeapon = localStorage.getItem("z_active_weapon_v2") || "pistol";
+
+        let ownedSkins = ["default"];
+        try {
+            let loadedSkins = JSON.parse(localStorage.getItem("z_owned_skins_v2"));
+            if(Array.isArray(loadedSkins)) ownedSkins = loadedSkins;
+        } catch(e){}
+        let activeSkin = localStorage.getItem("z_active_skin_v2") || "default";
+
+        let currentLevel = 1;
+        let gameActive = false;
+        let gameLoopInterval = null;
+        let lastShotTime = 0;
+
+        let player = {};
+        let keys = {};
+        let bullets = [];
+        let zombies = [];
+        let platforms = [];
+        let extractPoint = null;
+        let particles = [];
+
+        let bossProjectiles = [];
+        let bossLightning = null; 
+
+        const levelSelect = document.getElementById("level-select");
+        for(let i=1; i<=30; i++) {
+            let opt = document.createElement("option"); opt.value = i;
+            opt.innerText = `Stage ${i} ` + (i % 5 === 0 ? "👹 [BOSS]" : "");
+            levelSelect.appendChild(opt);
+        }
+
+        updateLobbyStats();
+
+        function updateLobbyStats() {
+            document.getElementById("lobby-coins").innerText = totalCoins;
+            document.getElementById("shop-coins-wallet").innerText = totalCoins;
+            updateLobbyLevelInfo();
+        }
+
+        // --- FITUR CHEAT DEVELOPER ---
+        function accessDevPanel() {
+            let inputSandi = prompt("Masukkan Kunci Sandi Otoritas Developer:");
+            // KODE SANDI RAHASIA: DEVRULEZ
+            if(inputSandi === "DEVRULEZ") {
+                document.getElementById("alert-title").innerText = "🛠️ AKSES DEV";
+                showAlert("Selamat datang kembali, Chief Developer! Akses penuh diberikan.");
+                document.getElementById("dev-panel").style.display = "block";
+            } else if (inputSandi !== null) {
+                document.getElementById("alert-title").innerText = "❌ AKSES DITOLAK";
+                showAlert("Sandi Salah! Area terlarang untuk kroco wkwkwk.");
+            }
+        }
+
+        function cheatCoins(amount) {
+            totalCoins = amount;
+            saveRPGState();
+            updateLobbyStats();
+            playSound('coin');
+        }
+
+        function updateLobbyLevelInfo() {
+            let lvl = parseInt(levelSelect.value);
+            let isBoss = lvl % 5 === 0;
+            let distance = 1000 + (lvl * 120);
+            let hpScale = 15 + (lvl * 14) + (isBoss ? lvl * 65 : 0);
+            
+            document.getElementById("level-info-text").innerHTML = `
+                • Jarak Medan Tempur: <b>${distance} meter</b><br>
+                • Estimasi HP Zombie: <b>${hpScale} HP</b><br>
+                • Keterangan Zona: ${isBoss ? `<b style='color:#ff3333;'>DIJAGA BOSS LEVEL ${lvl}!</b>` : "Pasukan Kroco Biasa"}<br>
+                • Status Ekstraksi: <b>Asap Hijau & Panah Navigasi Menyala saat Clear</b>
+            `;
+        }
+
+        function openShop() {
+            document.getElementById("lobby-screen").style.display = "none";
+            document.getElementById("shop-screen").style.display = "block";
+            updateShopUI();
+        }
+
+        function closeShop() {
+            document.getElementById("shop-screen").style.display = "none";
+            document.getElementById("lobby-screen").style.display = "block";
+            updateLobbyStats();
+        }
+
+        function showAlert(msg) {
+            document.getElementById("alert-message").innerText = msg;
+            document.getElementById("custom-alert").style.display = "block";
+        }
+        function closeAlert() { 
+            document.getElementById("custom-alert").style.display = "none"; 
+            document.getElementById("alert-title").innerText = "⚠️ LOGISTIK TOKO"; // reset default
+        }
+
+        function updateShopUI() {
+            let vestCost = vestLevel * 150;
+            let vestBlock = Math.min(60, (vestLevel - 1) * 4);
+            document.getElementById("info-vest").innerHTML = `Lv.${vestLevel} (Reduksi DMG: ${vestBlock}%)`;
+            let vBtn = document.getElementById("btn-upgrade-vest");
+            if(vestLevel >= 15) { vBtn.innerText = "MAXED"; vBtn.disabled = true; } 
+            else { vBtn.innerText = `Upgrade | 💰${vestCost}`; vBtn.disabled = false; }
+
+            let hpCost = hpLevel * 150;
+            let maxHpCalculated = 100 + (hpLevel - 1) * 15;
+            document.getElementById("info-hp").innerHTML = `Lv.${hpLevel} (Max HP: ${maxHpCalculated})`;
+            let hBtn = document.getElementById("btn-upgrade-hp");
+            if(hpLevel >= 15) { hBtn.innerText = "MAXED"; hBtn.disabled = true; } 
+            else { hBtn.innerText = `Upgrade | 💰${hpCost}`; hBtn.disabled = false; }
+
+            updateItemButtonUI("pistol", ownedWeapons, activeWeapon, "btn-wpn-pistol");
+            updateItemButtonUI("m4", ownedWeapons, activeWeapon, "btn-wpn-m4", 250);
+            updateItemButtonUI("ak47", ownedWeapons, activeWeapon, "btn-wpn-ak47", 500);
+            updateItemButtonUI("sniper", ownedWeapons, activeWeapon, "btn-wpn-sniper", 1000);
+            updateItemButtonUI("laser", ownedWeapons, activeWeapon, "btn-wpn-laser", 2500);
+
+            updateItemButtonUI("default", ownedSkins, activeSkin, "btn-skin-default");
+            updateItemButtonUI("jungle", ownedSkins, activeSkin, "btn-skin-jungle", 300);
+            updateItemButtonUI("desert", ownedSkins, activeSkin, "btn-skin-desert", 600);
+        }
+
+        function updateItemButtonUI(id, ownedList, activeId, elementId, price = 0) {
+            const btn = document.getElementById(elementId); if (!btn) return;
+            if (activeId === id) {
+                btn.innerText = "Dipasang"; btn.style.backgroundColor = "#ffeb3b"; btn.style.color = "black";
+            } else if (ownedList.includes(id)) {
+                btn.innerText = "Gunakan"; btn.style.backgroundColor = "#4CAF50"; btn.style.color = "black";
+            } else {
+                btn.innerText = "Beli | 💰" + price; btn.style.backgroundColor = "#444"; btn.style.color = "white";
+            }
+        }
+
+        function buyUpgrade(type) {
+            if(type === 'vest') {
+                let cost = vestLevel * 150;
+                if(totalCoins >= cost) {
+                    totalCoins -= cost; vestLevel++; saveRPGState(); playSound('coin'); updateShopUI();
+                } else { showAlert("Koin kurang!"); }
+            } else {
+                let cost = hpLevel * 150;
+                if(totalCoins >= cost) {
+                    totalCoins -= cost; hpLevel++; saveRPGState(); playSound('coin'); updateShopUI();
+                } else { showAlert("Koin kurang!"); }
+            }
+        }
+
+        function buyOrEquipWeapon(id, price) {
+            if(ownedWeapons.includes(id)) {
+                activeWeapon = id; saveRPGState(); updateShopUI();
+            } else {
+                if(totalCoins >= price) {
+                    totalCoins -= price; ownedWeapons.push(id); activeWeapon = id;
+                    saveRPGState(); playSound('coin'); updateShopUI();
+                } else { showAlert("Koin tabungan belum cukup!"); }
+            }
+        }
+
+        function equipWeapon(id) { activeWeapon = id; saveRPGState(); updateShopUI(); }
+
+        function buyOrEquipSkin(id, price) {
+            if(ownedSkins.includes(id)) {
+                activeSkin = id; saveRPGState(); updateShopUI();
+            } else {
+                if(totalCoins >= price) {
+                    totalCoins -= price; ownedSkins.push(id); activeSkin = id;
+                    saveRPGState(); playSound('coin'); updateShopUI();
+                } else { showAlert("Koin belum cukup!"); }
+            }
+        }
+
+        function equipSkin(id) { activeSkin = id; saveRPGState(); updateShopUI(); }
+
+        document.getElementById("lobby-coins").innerText = totalCoins;
+
+        function saveRPGState() {
+            localStorage.setItem("z_total_coins_v2", totalCoins);
+            localStorage.setItem("z_vest_lvl_v2", vestLevel);
+            localStorage.setItem("z_hp_lvl_v2", hpLevel);
+            localStorage.setItem("z_owned_weapons_v2", JSON.stringify(ownedWeapons));
+            localStorage.setItem("z_active_weapon_v2", activeWeapon);
+            localStorage.setItem("z_owned_skins_v2", JSON.stringify(ownedSkins));
+            localStorage.setItem("z_active_skin_v2", activeSkin);
+        }
+
+        window.addEventListener("keydown", (e) => {
+            keys[e.code] = true;
+            if(["Space", "ArrowUp", "KeyW"].includes(e.code) && gameActive) e.preventDefault();
+        });
+        window.addEventListener("keyup", (e) => { keys[e.code] = false; });
+        canvas.addEventListener("mousedown", (e) => { if(e.button === 0 && gameActive) triggerShooting(); });
+
+        function startGame() {
+            currentLevel = parseInt(document.getElementById("level-select").value);
+            setupStage(currentLevel);
+        }
+
+        function setupStage(lvl) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            document.getElementById("lobby-screen").style.display = "none";
+            document.getElementById("gameover-screen").style.display = "none";
+            document.getElementById("win-screen").style.display = "none";
+            document.getElementById("game-container").style.display = "flex";
+
+            document.getElementById("hud-level").innerText = lvl;
+            let isBossStage = (lvl % 5 === 0);
+            document.getElementById("hud-boss-alert").style.display = isBossStage ? "inline" : "none";
+
+            let mapSizeWidth = 1000 + (lvl * 150);
+            let calculatedMaxHp = 100 + (hpLevel - 1) * 15;
+
+            player = {
+                x: 80, y: 200, width: 24, height: 36, vx: 0, vy: 0,
+                speed: 4.5, jumpForce: 11.5, maxHp: calculatedMaxHp, hp: calculatedMaxHp,
+                grounded: false, facing: 'right'
+            };
+
+            bullets = []; zombies = []; particles = []; keys = {};
+            bossProjectiles = []; bossLightning = null;
+
+            platforms = [{ x: 0, y: 350, width: mapSizeWidth, height: 30, type: 'ground' }];
+
+            for(let pX = 300; pX < mapSizeWidth - 350; pX += 320) {
+                platforms.push({ x: pX, y: 230, width: 130, height: 16, type: 'brick' });
+            }
+
+            let baseZombieHp = 15 + (lvl * 14);
+            let zombieSpawnCount = 5 + Math.min(20, lvl * 2);
+
+            if(isBossStage) {
+                zombies.push({
+                    x: mapSizeWidth - 320, y: 250, width: 54, height: 75,
+                    hp: baseZombieHp * 6, maxHp: baseZombieHp * 6,
+                    speed: 1.1 + (lvl * 0.01), isBoss: true, tier: lvl, color: '#9c27b0',
+                    lastSkillTime: 0, lastSummonTime: 0, lastLightningTime: 0, lastRegenTime: 0
+                });
+                zombieSpawnCount = Math.floor(zombieSpawnCount * 0.4); 
+            }
+
+            for(let i=0; i<zombieSpawnCount; i++) {
+                let randX = 450 + (Math.random() * (mapSizeWidth - 800));
+                zombies.push({
+                    x: randX, y: 280, width: 24, height: 36,
+                    hp: baseZombieHp, maxHp: baseZombieHp,
+                    speed: 1.0 + (lvl * 0.04) + (Math.random() * 0.3), isBoss: false, color: '#a8e063'
+                });
+            }
+
+            extractPoint = { x: mapSizeWidth - 140, y: 270, width: 80, height: 80, active: false };
+
+            updateHUD();
+            gameActive = true;
+            clearInterval(gameLoopInterval);
+            gameLoopInterval = setInterval(gameLoop, 1000 / 60);
+        }
+
+        function updateHUD() {
+            document.getElementById("hud-hp").innerText = `${Math.max(0, Math.floor(player.hp))}/${player.maxHp}`;
+            document.getElementById("hud-zombies").innerText = zombies.length;
+        }
+
+        function triggerShooting() {
+            let now = Date.now();
+            let wpn = weaponArsenal[activeWeapon];
+            if (now - lastShotTime >= wpn.fireRate) {
+                lastShotTime = now;
+                playSound(wpn.sound);
+
+                let bX = player.facing === 'right' ? player.x + player.width : player.x;
+                bullets.push({
+                    x: bX, y: player.y + 14, width: wpn.isLaser ? 32 : 8, height: wpn.isLaser ? 6 : 4,
+                    vx: player.facing === 'right' ? 12 : -12,
+                    damage: wpn.damage, pierce: wpn.pierce, isLaser: wpn.isLaser, isSniper: wpn.isSniper,
+                    hitTargets: [] 
+                });
+            }
+        }
+
+        function gameLoop() {
+            if (!gameActive) return;
+
+            if(keys["KeyJ"]) { triggerShooting(); }
+
+            if (keys["ArrowLeft"] || keys["KeyA"]) {
+                player.vx = -player.speed; player.facing = 'left';
+            } else if (keys["ArrowRight"] || keys["KeyD"]) {
+                player.vx = player.speed; player.facing = 'right';
+            } else { player.vx = 0; }
+
+            if ((keys["Space"] || keys["KeyW"] || keys["ArrowUp"]) && player.grounded) {
+                player.vy = -player.jumpForce; player.grounded = false; playSound('jump');
+            }
+
+            player.vy += 0.52; player.x += player.vx; player.y += player.vy;
+
+            let currentMapWidth = 1000 + (currentLevel * 150);
+            if(player.x < 0) player.x = 0;
+            if(player.x > currentMapWidth - player.width) player.x = currentMapWidth - player.width;
+
+            player.grounded = false;
+            platforms.forEach(plat => {
+                if (player.x < plat.x + plat.width && player.x + player.width > plat.x &&
+                    player.y + player.height > plat.y && player.y + player.height - player.vy <= plat.y + 12) {
+                    if (player.vy > 0) { player.grounded = true; player.vy = 0; player.y = plat.y - player.height; }
+                }
+            });
+
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].x += bullets[i].vx;
+                if (bullets[i].x < player.x - 600 || bullets[i].x > player.x + 600) { bullets.splice(i, 1); }
+            }
+
+            let gameNow = Date.now();
+
+            for (let zIdx = zombies.length - 1; zIdx >= 0; zIdx--) {
+                let zombie = zombies[zIdx];
+                if(zombie.x < player.x) zombie.x += zombie.speed; else zombie.x -= zombie.speed;
+                if(zombie.y < 314 && !zombie.isBoss) zombie.y += 4;
+                if(zombie.isBoss && zombie.y < 275) zombie.y += 4;
+
+                if(zombie.isBoss) {
+                    let tier = zombie.tier;
+
+                    if([5, 25, 30].includes(tier)) {
+                        if(gameNow - zombie.lastSkillTime > 2500) {
+                            zombie.lastSkillTime = gameNow; playSound('boss_cast');
+                            let pVx = zombie.x > player.x ? -5 : 5;
+                            bossProjectiles.push({
+                                x: zombie.x, y: zombie.y + 25, r: 6, vx: pVx, vy: 0, homing: false, color: '#ffeb3b', spawnTime: gameNow
+                            });
+                        }
+                    }
+
+                    if([10, 25, 30].includes(tier)) {
+                        if(gameNow - zombie.lastSkillTime > 3000) {
+                            zombie.lastSkillTime = gameNow; playSound('boss_cast');
+                            bossProjectiles.push({
+                                x: zombie.x, y: zombie.y + 20, r: 7, vx: 0, vy: 0, homing: true, speed: 3.5, color: '#e67e22', spawnTime: gameNow
+                            });
+                        }
+                    }
+
+                    let summonCooldown = 999999;
+                    if(tier === 15) summonCooldown = 10000;
+                    if(tier === 20) summonCooldown = 5000;
+                    if([25, 30].includes(tier)) summonCooldown = 8000;
+
+                    if(gameNow - zombie.lastSummonTime > summonCooldown) {
+                        zombie.lastSummonTime = gameNow; playSound('boss_cast');
+                        zombies.push({
+                            x: zombie.x - 50, y: 280, width: 24, height: 36,
+                            hp: 20 + (currentLevel * 5), maxHp: 20 + (currentLevel * 5),
+                            speed: 1.5, isBoss: false, color: '#e74c3c'
+                        });
+                        spawnBloodSplatter(zombie.x, zombie.y + 20); updateHUD();
+                    }
+
+                    if([25, 30].includes(tier)) {
+                        if(gameNow - zombie.lastLightningTime > 10000) {
+                            zombie.lastLightningTime = gameNow; playSound('hit');
+                            bossLightning = {
+                                targetX: player.x,
+                                timer: tier === 25 ? 45 : 0, 
+                                duration: 15,
+                                dmgDealt: false
+                            };
+                        }
+                    }
+
+                    if(tier === 30) {
+                        if(gameNow - zombie.lastRegenTime > 15000) {
+                            zombie.lastRegenTime = gameNow;
+                            let regenAmount = Math.floor(zombie.maxHp * 0.15); 
+                            zombie.hp = Math.min(zombie.maxHp, zombie.hp + regenAmount);
+                            
+                            for(let r=0; r<8; r++) {
+                                particles.push({
+                                    x: zombie.x + Math.random()*zombie.width, y: zombie.y + Math.random()*zombie.height,
+                                    vx: (Math.random()-0.5)*2, vy: -2, alpha: 1.0, size: 4, customColor: '#2ecc71'
+                                });
+                            }
+                        }
+                    }
+                }
+
+                bullets.forEach((bullet, bIdx) => {
+                    if (bullet.x < zombie.x + zombie.width && bullet.x + bullet.width > zombie.x &&
+                        bullet.y < zombie.y + zombie.height && bullet.y + bullet.height > zombie.y) {
+                        
+                        if(!bullet.hitTargets.includes(zombie)) {
+                            bullet.hitTargets.push(zombie);
+                            
+                            let damageFinal = bullet.damage;
+                            
+                            if(bullet.isSniper && zombie.isBoss) {
+                                damageFinal = Math.floor(zombie.maxHp * 0.05); 
+                            }
+                            if(bullet.isLaser && zombie.isBoss) { 
+                                damageFinal = Math.floor(bullet.damage * 0.12); 
+                            }
+
+                            zombie.hp -= damageFinal;
+                            playSound('hit');
+                            spawnBloodSplatter(zombie.x + zombie.width/2, zombie.y + zombie.height/2);
+
+                            if(!bullet.pierce) { bullets.splice(bIdx, 1); }
+                        }
+                    }
+                });
+
+                if(zombie.hp <= 0) { zombies.splice(zIdx, 1); updateHUD(); continue; }
+
+                if (gameActive && player.x < zombie.x + zombie.width && player.x + player.width > zombie.x &&
+                    player.y < zombie.y + zombie.height && player.y + player.height > zombie.y) {
+                    
+                    let dmgBase = zombie.isBoss ? 1.6 : 0.6;
+                    let blockVest = Math.min(60, (vestLevel - 1) * 4);
+                    let realDmg = dmgBase * (1 - (blockVest / 100));
+
+                    player.hp -= realDmg; updateHUD();
+                    if (player.hp <= 0) triggerGameOver();
+                }
+            }
+
+            for (let k = bossProjectiles.length - 1; k >= 0; k--) {
+                let bp = bossProjectiles[k];
+                
+                if (bp.homing && (gameNow - bp.spawnTime > 4000)) {
+                    bossProjectiles.splice(k, 1);
+                    continue;
+                }
+
+                if(bp.homing) {
+                    let dx = player.x + player.width/2 - bp.x;
+                    let dy = player.y + player.height/2 - bp.y;
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    if(dist > 5) { bp.x += (dx / dist) * bp.speed; bp.y += (dy / dist) * bp.speed; }
+                } else {
+                    bp.x += bp.vx;
+                }
+
+                if(bp.x > player.x && bp.x < player.x + player.width && bp.y > player.y && bp.y < player.y + player.height) {
+                    let blockVest = Math.min(60, (vestLevel - 1) * 4);
+                    player.hp -= 12 * (1 - (blockVest / 100)); updateHUD();
+                    bossProjectiles.splice(k, 1);
+                    if (player.hp <= 0) triggerGameOver();
+                    continue;
+                }
+
+                if(bp.x < player.x - 800 || bp.x > player.x + 800) bossProjectiles.splice(k, 1);
+            }
+
+            if(bossLightning) {
+                if(bossLightning.timer > 0) {
+                    bossLightning.timer--;
+                } else {
+                    if(!bossLightning.dmgDealt) {
+                        bossLightning.dmgDealt = true;
+                        
+                        if(player.x + player.width > bossLightning.targetX - 20 && player.x < bossLightning.targetX + 20) {
+                            let blockVest = Math.min(60, (vestLevel - 1) * 4);
+                            player.hp -= 25 * (1 - (blockVest / 100)); updateHUD();
+                            if (player.hp <= 0) triggerGameOver();
+                        }
+
+                        for (let z = zombies.length - 1; z >= 0; z--) {
+                            let zb = zombies[z];
+                            if (zb.x + zb.width > bossLightning.targetX - 20 && zb.x < bossLightning.targetX + 20) {
+                                if (zb.isBoss) {
+                                    zb.hp -= Math.floor(zb.maxHp * 0.15); 
+                                } else {
+                                    zb.hp = 0; 
+                                }
+                                spawnBloodSplatter(zb.x + zb.width/2, zb.y + zb.height/2);
+                                if (zb.hp <= 0) zombies.splice(z, 1);
+                            }
+                        }
+                        updateHUD();
+                    }
+                    bossLightning.duration--;
+                    if(bossLightning.duration <= 0) bossLightning = null;
+                }
+            }
+
+            if(zombies.length === 0 && !extractPoint.active) { extractPoint.active = true; }
+
+            if (extractPoint.active && player.x < extractPoint.x + extractPoint.width && player.x + player.width > extractPoint.x &&
+                player.y < extractPoint.y + extractPoint.height && player.y + player.height > extractPoint.y) {
+                triggerWinStage();
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].x += particles[i].vx; particles[i].y += particles[i].vy; particles[i].alpha -= 0.04;
+                if(particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+
+            let cameraX = player.x - canvas.width / 2;
+            if(cameraX < 0) cameraX = 0;
+            let maxBoundary = currentMapWidth - canvas.width;
+            if(cameraX > maxBoundary) cameraX = maxBoundary;
+
+            renderGraphics(cameraX);
+        }
+
+        function spawnBloodSplatter(x, y) {
+            for(let i=0; i<6; i++) {
+                particles.push({
+                    x: x, y: y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 0.5) * 4,
+                    alpha: 1.0, size: 2 + Math.random() * 3
+                });
+            }
+        }
+
+        function renderGraphics(camX) {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(-camX, 0);
+
+            ctx.strokeStyle = "#161622"; ctx.lineWidth = 1;
+            let limitW = 1000 + (currentLevel * 150);
+            for(let gX = 0; gX < limitW; gX += 40) {
+                ctx.beginPath(); ctx.moveTo(gX, 0); ctx.lineTo(gX, canvas.height); ctx.stroke();
+            }
+
+            platforms.forEach(plat => {
+                ctx.fillStyle = plat.type === 'ground' ? '#271c19' : '#3c4f5e'; ctx.fillRect(plat.x, plat.y, plat.width, plat.height);
+                ctx.fillStyle = plat.type === 'ground' ? '#d32f2f' : '#546e7a'; ctx.fillRect(plat.x, plat.y, plat.width, 3);
+            });
+
+            if(extractPoint) {
+                if(extractPoint.active) {
+                    let blink = Math.floor(Date.now() / 130) % 2 === 0;
+                    ctx.fillStyle = blink ? 'rgba(46, 204, 113, 0.35)' : 'rgba(46, 204, 113, 0.12)';
+                    ctx.fillRect(extractPoint.x - 10, extractPoint.y - 200, extractPoint.width + 20, extractPoint.height + 200);
+                    ctx.fillStyle = "#f1c40f"; ctx.fillRect(extractPoint.x + 34, extractPoint.y + 65, 12, 15);
+                    ctx.fillStyle = "#2ecc71"; ctx.font = "bold 11px Courier New"; ctx.fillText("ZONA EKSTRAKSI", extractPoint.x - 10, extractPoint.y - 15);
+                } else {
+                    ctx.strokeStyle = "#444"; ctx.strokeRect(extractPoint.x, extractPoint.y, extractPoint.width, extractPoint.height);
+                    ctx.fillStyle = "#555"; ctx.font = "11px Courier New"; ctx.fillText("⚠️ STERILKAN AREA", extractPoint.x - 10, extractPoint.y + 40);
+                }
+            }
+
+            particles.forEach(p => {
+                ctx.fillStyle = p.customColor ? p.customColor : `rgba(255, 51, 51, ${p.alpha})`;
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+
+            bullets.forEach(b => {
+                if(b.isLaser) {
+                    ctx.fillStyle = "#00ffff"; ctx.shadowColor = "#00ffff"; ctx.shadowBlur = 10;
+                    ctx.fillRect(b.x, b.y - 2, b.width + 10, b.height + 4); ctx.shadowBlur = 0;
+                } else { ctx.fillStyle = "#ffeb3b"; ctx.fillRect(b.x, b.y, b.width, b.height); }
+            });
+
+            bossProjectiles.forEach(bp => {
+                ctx.fillStyle = bp.color; ctx.beginPath(); ctx.arc(bp.x, bp.y, bp.r, 0, Math.PI * 2); ctx.fill();
+            });
+
+            if(bossLightning) {
+                if(bossLightning.timer > 0) {
+                    ctx.fillStyle = "rgba(255, 0, 0, 0.25)"; ctx.fillRect(bossLightning.targetX - 15, 0, 30, canvas.height);
+                    ctx.strokeStyle = "red"; ctx.lineWidth = 2; ctx.strokeRect(bossLightning.targetX - 15, 0, 30, canvas.height);
+                } else {
+                    ctx.fillStyle = "#ff3333"; ctx.shadowColor = "red"; ctx.shadowBlur = 15;
+                    ctx.fillRect(bossLightning.targetX - 20, 0, 40, canvas.height);
+                    ctx.fillStyle = "#ffffff"; ctx.fillRect(bossLightning.targetX - 6, 0, 12, canvas.height);
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            let skin = skinStyles[activeSkin] || skinStyles['default'];
+            ctx.fillStyle = skin.base; ctx.fillRect(player.x, player.y, player.width, player.height);
+            ctx.fillStyle = skin.head; ctx.fillRect(player.x, player.y, player.width, 8);
+            ctx.fillStyle = "#000"; let eOff = player.facing === 'right' ? 14 : 2; ctx.fillRect(player.x + eOff, player.y + 11, 8, 4);
+
+            ctx.fillStyle = activeWeapon === 'laser' ? '#00ffff' : (activeWeapon === 'sniper' ? '#e74c3c' : '#bdc3c7');
+            let gOff = player.facing === 'right' ? player.width : -12; ctx.fillRect(player.x + gOff, player.y + 16, 12, 6);
+
+            if(extractPoint && extractPoint.active) {
+                let arrowBlink = Math.floor(Date.now() / 200) % 2 === 0;
+                if(arrowBlink) {
+                    ctx.fillStyle = "#2ecc71";
+                    ctx.font = "bold 13px 'Courier New'";
+                    if (extractPoint.x > player.x) {
+                        ctx.fillText("▶ KANAN (ZONA EVAKUASI)", player.x - 40, player.y - 25);
+                    } else {
+                        ctx.fillText("◀ KIRI (ZONA EVAKUASI)", player.x - 40, player.y - 25);
+                    }
+                }
+            }
+
+            zombies.forEach(z => {
+                ctx.fillStyle = z.color; ctx.fillRect(z.x, z.y, z.width, z.height);
+                ctx.fillStyle = z.isBoss ? "#673ab7" : "#2c3e50"; ctx.fillRect(z.x, z.y + (z.isBoss ? 20 : 10), z.width, z.isBoss ? 40 : 16);
+                ctx.fillStyle = "#ff0000"; let zEye = z.isBoss ? 8 : 4; ctx.fillRect(z.x + (z.width/4), z.y + zEye, zEye, zEye);
+
+                let barW = (z.hp / z.maxHp) * z.width;
+                ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(z.x, z.y - 12, z.width, 5);
+                ctx.fillStyle = z.isBoss ? "#e91e63" : "#ff3333"; ctx.fillRect(z.x, z.y - 12, barW, 5);
+            });
+
+            ctx.restore();
+        }
+
+        function triggerGameOver() {
+            gameActive = false; clearInterval(gameLoopInterval); playSound('gameover');
+            document.getElementById("game-container").style.display = "none";
+            document.getElementById("gameover-screen").style.display = "block";
+        }
+
+        function triggerWinStage() {
+            gameActive = false; clearInterval(gameLoopInterval);
+            let bonusMoney = 50 + (currentLevel * 25);
+            if(currentLevel % 5 === 0) bonusMoney += 250; 
+
+            totalCoins += bonusMoney; saveRPGState();
+
+            document.getElementById("win-bonus").innerText = `+${bonusMoney} KOIN`;
+            document.getElementById("game-container").style.display = "none";
+            document.getElementById("win-screen").style.display = "block";
+        }
+
+        function restartGame() { setupStage(currentLevel); }
+        function backToLobby() {
+            gameActive = false; clearInterval(gameLoopInterval);
+            document.getElementById("game-container").style.display = "none";
+            document.getElementById("gameover-screen").style.display = "none";
+            document.getElementById("win-screen").style.display = "none";
+            document.getElementById("lobby-screen").style.display = "block";
+            updateLobbyStats();
+        }
+
+        function nextLevel() {
+            if (currentLevel < 30) {
+                currentLevel++; document.getElementById("level-select").value = currentLevel; setupStage(currentLevel);
+            } else {
+                alert("GOKIL TAMAT! Kamu resmi menghancurkan kiamat zombie 30 Stage! Kamu dewa perang sejati! 🏆");
+                backToLobby();
+            }
+        }
+    </script>
+</body>
+</html>
