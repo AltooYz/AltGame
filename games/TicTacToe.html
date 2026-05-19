@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AltGame - Tic Tac Toe Royal</title>
+    <style>
+        :root {
+            --bg-amber: #2c1e05;
+            --accent-gold: #ffcc00;
+            --cyan-ag: #00f2fe;
+            --cell-size: 100px;
+        }
+
+        body {
+            background-color: var(--bg-amber);
+            color: white;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Menu Utama */
+        #menu-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+
+        .ag-logo { color: var(--cyan-ag); font-weight: bold; font-size: 40px; margin-bottom: 20px; text-shadow: 0 0 15px var(--cyan-ag); }
+
+        /* Board Styling */
+        .board {
+            display: grid;
+            gap: 10px;
+            background: rgba(255, 204, 0, 0.1);
+            padding: 10px;
+            border-radius: 15px;
+            border: 2px solid var(--accent-gold);
+            position: relative;
+        }
+
+        .cell {
+            width: var(--cell-size);
+            height: var(--cell-size);
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            cursor: pointer;
+            position: relative;
+            transition: 0.3s;
+        }
+
+        .cell:hover { background: rgba(255, 255, 255, 0.1); }
+
+        /* Animasi Tulisan Manual */
+        .symbol {
+            font-family: 'Comic Sans MS', cursive;
+            opacity: 0;
+            transform: scale(0.5);
+            animation: writeManual 0.4s forwards;
+        }
+
+        @keyframes writeManual {
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Garis Coretan (Winning Line) */
+        .strike {
+            position: absolute;
+            background: var(--cyan-ag);
+            z-index: 10;
+            border-radius: 5px;
+            transition: all 0.5s ease-out;
+            box-shadow: 0 0 15px var(--cyan-ag);
+        }
+
+        /* Pop-up Kemenangan AG */
+        #win-popup {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            background: #111; border: 3px solid var(--cyan-ag);
+            padding: 40px; border-radius: 20px; text-align: center;
+            z-index: 200; transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 0 50px var(--cyan-ag);
+        }
+
+        #win-popup.show { transform: translate(-50%, -50%) scale(1); }
+
+        button {
+            padding: 12px 25px; margin: 10px; border: none; border-radius: 25px;
+            font-weight: bold; cursor: pointer; transition: 0.3s;
+        }
+        .btn-gold { background: var(--accent-gold); color: black; }
+        .btn-cyan { background: var(--cyan-ag); color: black; }
+    </style>
+</head>
+<body>
+
+<div id="menu-overlay">
+    <div class="ag-logo">AG - TIC TAC TOE</div>
+    <div id="mode-selection">
+        <button class="btn-gold" onclick="showDifficulty()">VS AI</button>
+        <button class="btn-cyan" onclick="startGame('pvp')">MAIN BERSAMA TEMAN</button>
+    </div>
+    <div id="difficulty-selection" style="display:none;">
+        <p>Pilih Kesulitan (Ukuran Kolom Berbeda):</p>
+        <button class="btn-gold" onclick="startGame('ai', 3)">EASY (3x3)</button>
+        <button class="btn-gold" onclick="startGame('ai', 4)">MEDIUM (4x4)</button>
+        <button class="btn-gold" onclick="startGame('ai', 5)">HARD (5x5)</button>
+    </div>
+</div>
+
+<div id="game-info" style="margin-bottom: 20px; font-weight: bold; color: var(--accent-gold);">
+    GILIRAN: <span id="turn-display">PEMAIN (X)</span>
+</div>
+
+<div id="board" class="board"></div>
+
+<div id="win-popup">
+    <h1 style="color: var(--cyan-ag); margin-top: 0;">CELEBRATION!</h1>
+    <p id="win-message" style="font-size: 20px;"></p>
+    <p style="color: #888;">Exclusive Work by @altooyz</p>
+    <button class="btn-cyan" onclick="location.reload()">MAIN LAGI</button>
+</div>
+
+<script>
+    let board = [];
+    let boardSize = 3;
+    let currentPlayer = 'X';
+    let gameActive = false;
+    let gameMode = 'pvp';
+
+    function showDifficulty() {
+        document.getElementById('mode-selection').style.display = 'none';
+        document.getElementById('difficulty-selection').style.display = 'block';
+    }
+
+    function startGame(mode, size = 3) {
+        gameMode = mode;
+        boardSize = size;
+        gameActive = true;
+        currentPlayer = 'X';
+        document.getElementById('menu-overlay').style.display = 'none';
+        document.getElementById('turn-display').innerText = "GILIRAN: X";
+        
+        const boardElement = document.getElementById('board');
+        boardElement.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+        boardElement.innerHTML = '';
+        
+        board = Array(size * size).fill('');
+
+        for (let i = 0; i < size * size; i++) {
+            const cell = document.createElement('div');
+            cell.className = 'cell';
+            cell.dataset.idx = i;
+            cell.onclick = () => handleMove(i);
+            boardElement.appendChild(cell);
+        }
+    }
+
+    function handleMove(idx) {
+        if (!gameActive || board[idx] !== '') return;
+
+        makeMove(idx, currentPlayer);
+
+        const winResult = checkWin(currentPlayer);
+        if (winResult) {
+            drawStrike(winResult);
+            setTimeout(() => endGame(false), 600);
+            return;
+        }
+
+        if (board.every(cell => cell !== '')) {
+            endGame(true);
+            return;
+        }
+
+        currentPlayer = (currentPlayer === 'X') ? 'O' : 'X';
+        document.getElementById('turn-display').innerText = `GILIRAN: ${currentPlayer}`;
+
+        if (gameMode === 'ai' && currentPlayer === 'O' && gameActive) {
+            document.getElementById('turn-display').innerText = "AI SEDANG BERPIKIR...";
+            setTimeout(aiMove, 600);
+        }
+    }
+
+    function makeMove(idx, player) {
+        board[idx] = player;
+        const cell = document.querySelector(`[data-idx="${idx}"]`);
+        const span = document.createElement('span');
+        span.className = 'symbol';
+        span.style.color = (player === 'X') ? '#00f2fe' : '#ffcc00';
+        span.innerText = player;
+        cell.appendChild(span);
+    }
+
+    // LOGIKA KEMENANGAN (FIXED)
+    function checkWin(player) {
+        const size = boardSize;
+        const winNeeded = (size === 3) ? 3 : 4; 
+
+        const lines = [];
+
+        // Baris
+        for (let r = 0; r < size; r++) {
+            for (let c = 0; c <= size - winNeeded; c++) {
+                let combo = [];
+                for (let k = 0; k < winNeeded; k++) combo.push(r * size + (c + k));
+                lines.push(combo);
+            }
+        }
+        // Kolom
+        for (let c = 0; c < size; c++) {
+            for (let r = 0; r <= size - winNeeded; r++) {
+                let combo = [];
+                for (let k = 0; k < winNeeded; k++) combo.push((r + k) * size + c);
+                lines.push(combo);
+            }
+        }
+        // Diagonal Kanan
+        for (let r = 0; r <= size - winNeeded; r++) {
+            for (let c = 0; c <= size - winNeeded; c++) {
+                let combo = [];
+                for (let k = 0; k < winNeeded; k++) combo.push((r + k) * size + (c + k));
+                lines.push(combo);
+            }
+        }
+        // Diagonal Kiri
+        for (let r = 0; r <= size - winNeeded; r++) {
+            for (let c = winNeeded - 1; c < size; c++) {
+                let combo = [];
+                for (let k = 0; k < winNeeded; k++) combo.push((r + k) * size + (c - k));
+                lines.push(combo);
+            }
+        }
+
+        for (let line of lines) {
+            if (line.every(idx => board[idx] === player)) return line;
+        }
+        return null;
+    }
+
+    function drawStrike(indices) {
+        const first = document.querySelector(`[data-idx="${indices[0]}"]`);
+        const last = document.querySelector(`[data-idx="${indices[indices.length-1]}"]`);
+        const boardRect = document.getElementById('board').getBoundingClientRect();
+        const fRect = first.getBoundingClientRect();
+        const lRect = last.getBoundingClientRect();
+
+        const strike = document.createElement('div');
+        strike.className = 'strike';
+        
+        const x1 = fRect.left + fRect.width/2 - boardRect.left;
+        const y1 = fRect.top + fRect.height/2 - boardRect.top;
+        const x2 = lRect.left + lRect.width/2 - boardRect.left;
+        const y2 = lRect.top + lRect.height/2 - boardRect.top;
+
+        const dist = Math.hypot(x2 - x1, y2 - y1);
+        const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+        strike.style.width = dist + 'px';
+        strike.style.height = '6px';
+        strike.style.left = x1 + 'px';
+        strike.style.top = y1 + 'px';
+        strike.style.transformOrigin = '0 50%';
+        strike.style.transform = `rotate(${angle}deg)`;
+        
+        document.getElementById('board').appendChild(strike);
+    }
+
+    function aiMove() {
+        if (!gameActive) return;
+
+        // Probabilitas kesalahan agar tetap "Normal" (30% peluang langkah acak)
+        if (Math.random() < 0.3) {
+            let available = board.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+            if (available.length > 0) {
+                handleMove(available[Math.floor(Math.random() * available.length)]);
+                return;
+            }
+        }
+
+        let bestScore = -Infinity;
+        let move;
+        
+        // Batasi kedalaman prediksi berdasarkan ukuran papan agar tidak freeze
+        // 3x3: Kedalaman tak terbatas | 4x4: Kedalaman 4 | 5x5: Kedalaman 3
+        const maxDepth = (boardSize === 3) ? 10 : (boardSize === 4) ? 4 : 3;
+
+        for (let i = 0; i < board.length; i++) {
+            if (board[i] === '') {
+                board[i] = 'O';
+                let score = minimax(board, 0, false, -Infinity, Infinity, maxDepth);
+                board[i] = '';
+                if (score > bestScore) {
+                    bestScore = score;
+                    move = i;
+                }
+            }
+        }
+        
+        if (move !== undefined) handleMove(move);
+    }
+
+    // Menggunakan Alpha-Beta Pruning untuk performa super cepat
+    function minimax(currBoard, depth, isMaximizing, alpha, beta, maxDepth) {
+        if (checkWin('O')) return 10 - depth;
+        if (checkWin('X')) return depth - 10;
+        if (currBoard.every(cell => cell !== '') || depth >= maxDepth) return 0;
+
+        if (isMaximizing) {
+            let bestScore = -Infinity;
+            for (let i = 0; i < currBoard.length; i++) {
+                if (currBoard[i] === '') {
+                    currBoard[i] = 'O';
+                    let score = minimax(currBoard, depth + 1, false, alpha, beta, maxDepth);
+                    currBoard[i] = '';
+                    bestScore = Math.max(score, bestScore);
+                    alpha = Math.max(alpha, score);
+                    if (beta <= alpha) break; // Pruning
+                }
+            }
+            return bestScore;
+        } else {
+            let bestScore = Infinity;
+            for (let i = 0; i < currBoard.length; i++) {
+                if (currBoard[i] === '') {
+                    currBoard[i] = 'X';
+                    let score = minimax(currBoard, depth + 1, true, alpha, beta, maxDepth);
+                    currBoard[i] = '';
+                    bestScore = Math.min(score, bestScore);
+                    beta = Math.min(beta, score);
+                    if (beta <= alpha) break; // Pruning
+                }
+            }
+            return bestScore;
+        }
+    }
+    function endGame(draw) {
+        gameActive = false;
+        const popup = document.getElementById('win-popup');
+        const msg = document.getElementById('win-message');
+        
+        if (draw) {
+            msg.innerText = "HASIL SERI!";
+        } else {
+            msg.innerText = (currentPlayer === 'O' && gameMode === 'ai') ? "AI MENANG!" : "KAMU MENANG! AG CELEBRATION!";
+        }
+        popup.classList.add('show');
+    }
+</script>
+</body>
+</html>
