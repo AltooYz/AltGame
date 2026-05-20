@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AltCraft: Hardcore v5.5</title>
+    <style>
+        body {
+            background-color: #0b0b0f; color: #fff; font-family: 'Courier New', Courier, monospace;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; margin: 0; overflow: hidden; user-select: none;
+        }
+        h1 { color: #ff3333; text-shadow: 0 0 10px rgba(255, 51, 51, 0.4); margin: 0 0 15px 0; font-size: 26px; text-align: center; }
+        .screen {
+            background: #111116; border: 3px solid #ff3333; padding: 25px;
+            border-radius: 8px; box-shadow: 0 0 25px rgba(255, 51, 51, 0.2);
+            text-align: center; width: 440px; display: none; position: relative;
+        }
+        button {
+            background-color: #ff3333; color: white; border: 2px solid #fff; padding: 10px 15px;
+            font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-family: 'Courier New'; font-size: 14px;
+        }
+        button:hover { background-color: #fff; color: #ff3333; }
+        button.secondary { background-color: #2c3e50; border-color: #bdc3c7; }
+        button.secondary:hover { background-color: #bdc3c7; color: #2c3e50; }
+        input { background: #1a1a24; border: 1px solid #ff3333; color: #fff; padding: 8px; width: 90%; margin-bottom: 10px; font-family: 'Courier New'; text-align: center;}
+
+        canvas { background-color: #27ae60; border: 4px solid #1e272e; box-shadow: 0 0 25px rgba(0,0,0,0.7); display: none; }
+        
+        /* HUD OVERLAY RE-DESIGN (SYSTEM BAR VISUAL) */
+        #hud-overlay { width: 950px; display: flex; justify-content: space-between; font-size: 11px; color: #aaa; margin-bottom: 6px; display: none; align-items: center; }
+        .stat-container { display: inline-block; width: 110px; background: #222; border: 1px solid #555; height: 12px; vertical-align: middle; position: relative; border-radius: 2px; overflow: hidden; margin-left: 4px; }
+        .bar-hp { background: #e74c3c; height: 100%; width: 100%; transition: width 0.2s; }
+        .bar-hunger { background: #e67e22; height: 100%; width: 100%; transition: width 0.2s; }
+
+        /* UI DEATH SCREEN HALF-SCREEN STYLE */
+        #death-screen {
+            position: absolute; top: 25%; left: 50%; transform: translate(-50%, -10%);
+            background: rgba(139, 0, 0, 0.95); border: 4px solid #fff; padding: 30px;
+            border-radius: 10px; width: 380px; text-align: center; display: none;
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.7); z-index: 5000;
+        }
+        
+        #sleep-panel {
+            position: absolute; bottom: 80px; left: 30px; background: rgba(17,17,22,0.95);
+            border: 2px solid #f1c40f; padding: 15px; border-radius: 6px; display: none;
+            box-shadow: 0 0 15px rgba(241, 196, 15, 0.3); width: 220px; z-index: 1000;
+        }
+        .sleep-btn { padding: 5px 8px; font-size: 11px; margin-top: 5px; width: 48%; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <div id="modern-toast" style="position: fixed; top: -100px; background: #111116; border: 2px solid #ff3333; color: #ff3333; padding: 12px 30px; font-weight: bold; font-size: 13px; box-shadow: 0 0 20px rgba(255, 51, 51, 0.3); border-radius: 4px; transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999;">SYSTEM NOTIFICATION</div>
+
+    <div id="hud-overlay">
+        <div>
+            <span id="lbl-p1-name" style="font-weight: bold; color: #ff3333;">P1</span><br>
+            ❤️<div class="stat-container"><div id="p1-bar-hp" class="bar-hp"></div></div><br>
+            🍖<div class="stat-container"><div id="p1-bar-hunger" class="bar-hunger"></div></div>
+        </div>
+        <div style="color: #fff; font-weight: bold; background: #2c3e50; padding: 6px 14px; border-radius: 4px; font-size: 13px;">⏰ TIME: <span id="game-clock" style="color:#f1c40f;">08:00</span></div>
+        <div style="text-align: right;">
+            <span id="lbl-p2-name" style="font-weight: bold; color: #3498db;">P2</span><br>
+            <div class="stat-container"><div id="p2-bar-hp" class="bar-hp"></div></div>❤️<br>
+            <div class="stat-container"><div id="p2-bar-hunger" class="bar-hunger"></div></div>🍖
+        </div>
+    </div>
+
+    <div id="beranda-screen" class="screen" style="display: block;">
+        <h1>AltCraft Survival Multiplayer</h1>
+        <p style="font-size: 11px; color: #888; margin-top: -10px;">v5.5 Hardcore Bars & Respawn Patch</p>
+        <hr style="border-color: #222; margin: 15px 0;">
+        <button onclick="selectPlayMode('solo')">👤 MODE SOLO (SENDIRI)</button>
+        <button onclick="selectPlayMode('multi')">👥 MODE MULTIPLAYER (CO-OP)</button>
+        <button class="secondary" onclick="openSettingsMenu()">⚙️ PENGATURAN NAMA</button>
+        <button class="secondary" onclick="openSaveMenu()">📂 SAVES SLOT & LOAD GAME</button>
+    </div>
+
+    <div id="settings-screen" class="screen">
+        <h2>PENGATURAN KARAKTER</h2>
+        <label style="font-size: 12px; color: #aaa;">Nama Player 1:</label><br>
+        <input type="text" id="input-p1-name" value="Player 1"><br>
+        <label style="font-size: 12px; color: #aaa;">Nama Player 2:</label><br>
+        <input type="text" id="input-p2-name" value="Player 2"><br>
+        <button onclick="saveSettings()">💾 SIMPAN PENGATURAN</button>
+    </div>
+
+    <div id="save-screen" class="screen">
+        <h2>SLOT SAVES SYSTEM</h2>
+        <div style="display: grid; grid-template-columns: 1fr; gap: 8px; margin: 15px 0;">
+            <button style="background: #1a1a24; text-align: left;" onclick="executeSlotAction(1)">Slot 1: <span id="slot-1-info">KOSONG</span></button>
+            <button style="background: #1a1a24; text-align: left;" onclick="executeSlotAction(2)">Slot 2: <span id="slot-2-info">KOSONG</span></button>
+            <button style="background: #1a1a24; text-align: left;" onclick="executeSlotAction(3)">Slot 3: <span id="slot-3-info">KOSONG</span></button>
+        </div>
+        <button class="secondary" onclick="backToMenu()">⬅️ KEMBALI</button>
+    </div>
+
+    <div id="death-screen">
+        <h2 style="color: #fff; font-size: 28px; margin: 0 0 10px 0; text-shadow: 0 0 10px #000;">☠️ YOU DIED ☠️</h2>
+        <p id="death-msg" style="font-size: 12px; color: #eee; margin-bottom: 20px;">Seseorang tewas mengenaskan!</p>
+        <button style="background: #fff; color: #8b0000; border-color: #8b0000; font-size: 16px;" onclick="executeRespawn()">🔄 RESPAWN GAME</button>
+    </div>
+
+    <div id="sleep-panel">
+        <div id="sleep-status-text" style="font-size: 11px; font-weight: bold; color: #f1c40f;">Seseorang sedang tidur...</div>
+        <button class="sleep-btn" onclick="wakeUpPlayer()">Bangun</button>
+        <button class="sleep-btn" style="background:#e67e22;" onclick="pingFriendToSleep()">Gedor Teman</button>
+    </div>
+
+    <canvas id="gameCanvas" width="950" height="550"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let gameActive = false;
+        let gameMode = 'multi'; 
+        let currentSelectedSlot = 1;
+        let deadPlayerRef = null; 
+        const keys = {};
+
+        let gameHour = 8; let gameMinute = 0; let ambientDarkness = 0;
+
+        // DATA PLAYER INDEPENDEN
+        let player1 = { 
+            id: 'p1', x: 200, y: 280, size: 22, speed: 3.2, color: "#ff3333", hp: 100, hunger: 100, name: "Player 1", invOpen: false, 
+            activeTool: "🪓", selectedHotbarIdx: 0, heading: 'S', isSleeping: false, isDead: false,
+            slots: [
+                { id: "tool_ax", type: "tool", icon: "🪓", count: 1 }, { id: "tool_pick", type: "tool", icon: "⛏️", count: 1 }, { id: "tool_sword", type: "tool", icon: "⚔️", count: 1 },
+                { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 },
+                { id: "wood", type: "mat", icon: "🪵", count: 6 }, { id: "stone", type: "mat", icon: "🪨", count: 4 },
+                { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 }
+            ],
+            craftGrid: [{ id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }],
+            craftResult: { id: "empty", icon: "", count: 0 }
+        };
+
+        let player2 = { 
+            id: 'p2', x: 700, y: 280, size: 22, speed: 3.2, color: "#3498db", hp: 100, hunger: 100, name: "Player 2", invOpen: false, 
+            activeTool: "🪓", selectedHotbarIdx: 0, heading: 'S', isSleeping: false, isDead: false,
+            slots: [
+                { id: "tool_ax", type: "tool", icon: "🪓", count: 1 }, { id: "tool_pick", type: "tool", icon: "⛏️", count: 1 }, { id: "tool_sword", type: "tool", icon: "⚔️", count: 1 },
+                { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 },
+                { id: "wood", type: "mat", icon: "🪵", count: 4 }, { id: "stone", type: "mat", icon: "🪨", count: 2 },
+                { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 }, { id: "empty", type: "empty", icon: "", count: 0 }
+            ],
+            craftGrid: [{ id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }, { id: "empty", icon: "", count: 0 }],
+            craftResult: { id: "empty", icon: "", count: 0 }
+        };
+        
+        let sharedChest = { x: 460, y: 260, w: 32, h: 32, color: "#d35400" };
+        let chestSlots = [
+            { id: "wood", icon: "🪵", count: 5 }, { id: "stone", icon: "🪨", count: 3 },
+            { id: "plank", icon: "🧱_wood", count: 0 }, { id: "brick", icon: "🧱_stone", count: 0 }, { id: "wool", icon: "🐑", count: 0 }
+        ];
+
+        let selectedHandItem = null; let clickRects = []; let resources = []; let mobs = []; let placedBlocks = []; let ghosts = [];
+        let mouseX = 0, mouseY = 0;
+
+        function showModernToast(msg) {
+            const toast = document.getElementById("modern-toast"); toast.innerText = msg; toast.style.top = "25px";
+            setTimeout(() => { toast.style.top = "-100px"; }, 1800);
+        }
+
+        function clearSlot(slot) { slot.id = "empty"; slot.type = "empty"; slot.icon = ""; slot.count = 0; }
+
+        function openSettingsMenu() { document.getElementById("beranda-screen").style.display = "none"; document.getElementById("settings-screen").style.display = "block"; }
+
+        function saveSettings() {
+            player1.name = document.getElementById("input-p1-name").value || "Player 1";
+            player2.name = document.getElementById("input-p2-name").value || "Player 2";
+            document.getElementById("settings-screen").style.display = "none"; document.getElementById("beranda-screen").style.display = "block";
+            showModernToast("⚙️ Nama Karakter Berhasil Disimpan!");
+        }
+
+        // SPAWN HEWAN JINAK & GHOST (FIX SPAWN RATE DOMBA DINAIKKAN SEIMBANG)
+        function spawnMobRandomly() {
+            let isNight = (gameHour >= 18 || gameHour < 5);
+            if (!isNight && mobs.filter(m=>m.id!=='ghost').length >= 6) return;
+            if (isNight && ghosts.length >= 4) return;
+
+            if (isNight) {
+                ghosts.push({ x: Math.random() * (canvas.width - 100) + 50, y: Math.random() * (canvas.height - 100) + 50, id: 'ghost', icon: '👻', hp: 40, maxHp: 40, speed: 1.1 });
+            } else {
+                // Bobot acak 33% merata antara Sapi, Ayam, dan Domba (Domba ga langka lagi!)
+                const pool = [
+                    { id: 'cow', icon: '🐄', hp: 60 },
+                    { id: 'sheep', icon: '🐑', hp: 45 },
+                    { id: 'chicken', icon: ' Destruction', icon: '🐓', hp: 30 }
+                ];
+                let r = pool[Math.floor(Math.random() * pool.length)];
+                mobs.push({
+                    x: Math.random() * (canvas.width - 150) + 75,
+                    y: Math.random() * (canvas.height - 150) + 75,
+                    id: r.id, icon: r.id==='chicken'?'🐓':r.icon, maxHp: r.hp, hp: r.hp, vx: 0, vy: 0, ticks: 0
+                });
+            }
+        }
+
+        function generateWorld() {
+            resources = []; mobs = []; placedBlocks = []; ghosts = [];
+            for (let i = 0; i < 6; i++) spawnResource('tree');
+            for (let i = 0; i < 5; i++) spawnResource('stone');
+            for (let i = 0; i < 3; i++) spawnMobRandomly();
+        }
+
+        function spawnResource(type) {
+            resources.push({ x: Math.random() * (canvas.width - 360) + 180, y: Math.random() * (canvas.height - 140) + 70, w: 26, h: 26, type: type, hp: 100, maxHp: 100 });
+        }
+
+        function selectPlayMode(mode) {
+            gameMode = mode;
+            document.getElementById("beranda-screen").style.display = "none";
+            document.getElementById("hud-overlay").style.display = "flex";
+            canvas.style.display = "block";
+            document.getElementById("lbl-p1-name").innerText = player1.name.toUpperCase();
+            document.getElementById("lbl-p2-name").innerText = player2.name.toUpperCase();
+            generateWorld();
+            gameActive = true;
+
+            // SISTEM CLOCK JAM DIGITAL
+            setInterval(() => {
+                if (gameActive) {
+                    if (player1.isSleeping && (gameMode === 'solo' || player2.isSleeping)) return;
+
+                    gameMinute++;
+                    if (gameMinute >= 60) { gameMinute = 0; gameHour++; }
+                    if (gameHour >= 24) { gameHour = 0; }
+
+                    if (gameHour >= 18 || gameHour < 5) {
+                        ambientDarkness = Math.min(0.65, ambientDarkness + 0.02);
+                        if (Math.random() < 0.15) spawnMobRandomly();
+                    } else {
+                        ambientDarkness = Math.max(0, ambientDarkness - 0.04);
+                        if (ghosts.length > 0) { ghosts = []; showModernToast("☀️ Pagi Tiba! Hantu Terbakar Musnah!"); }
+                    }
+
+                    // Pengurangan Lapar & Logika Pengurangan Darah Akibat Kelaparan (Starvation)
+                    if (gameMinute % 15 === 0) {
+                        if (!player1.isDead && !player1.isSleeping) {
+                            if (player1.hunger > 0) player1.hunger--;
+                            else player1.hp = Math.max(0, player1.hp - 2); // Mengurangi darah perlahan jika lapar = 0
+                        }
+                        if (gameMode === 'multi' && !player2.isDead && !player2.isSleeping) {
+                            if (player2.hunger > 0) player2.hunger--;
+                            else player2.hp = Math.max(0, player2.hp - 2);
+                        }
+                    }
+
+                    // Hantu serang player secara berkala
+                    ghosts.forEach(gh => {
+                        if (Math.hypot(gh.x - player1.x, gh.y - player1.y) < 25 && !player1.isSleeping && !player1.isDead) player1.hp = Math.max(0, player1.hp - 1.2);
+                        if (gameMode === 'multi' && Math.hypot(gh.x - player2.x, gh.y - player2.y) < 25 && !player2.isSleeping && !player2.isDead) player2.hp = Math.max(0, player2.hp - 1.2);
+                    });
+
+                    // Cek Kondisi Pemicu Kematian Player
+                    checkPlayerDeathCondition(player1);
+                    if (gameMode === 'multi') checkPlayerDeathCondition(player2);
+
+                    updateClockUI();
+                    updateBarsUI();
+                }
+            }, 180);
+
+            setInterval(() => { if(gameActive) spawnMobRandomly(); }, 12000);
+            requestAnimationFrame(updateLoop);
+        }
+
+        function updateClockUI() {
+            let hStr = gameHour.toString().padStart(2, '0'); let mStr = gameMinute.toString().padStart(2, '0');
+            document.getElementById("game-clock").innerText = `${hStr}:${mStr}`;
+        }
+
+        function updateBarsUI() {
+            document.getElementById("p1-bar-hp").style.width = `${player1.hp}%`;
+            document.getElementById("p1-bar-hunger").style.width = `${player1.hunger}%`;
+            document.getElementById("p2-bar-hp").style.width = `${player2.hp}%`;
+            document.getElementById("p2-bar-hunger").style.width = `${player2.hunger}%`;
+        }
+
+        function checkPlayerDeathCondition(pObj) {
+            if (pObj.hp <= 0 && !pObj.isDead) {
+                pObj.isDead = true;
+                pObj.isSleeping = false;
+                deadPlayerRef = pObj;
+                document.getElementById("death-msg").innerText = `💀 ${pObj.name.toUpperCase()} tewas mengenaskan karena kerasnya alam!`;
+                document.getElementById("death-screen").style.display = "block";
+            }
+        }
+
+        // FUNGSI RESPAWN: HANGUSKAN MATERIAL, AMANKAN ALAT (PICKAXE, AXE, SWORD)
+        function executeRespawn() {
+            if (!deadPlayerRef) return;
+
+            let p = deadPlayerRef;
+            p.slots.forEach(slot => {
+                // Jika bukan alat (tool), maka hangus dikosongkan total!
+                if (slot.id !== "empty" && slot.type !== "tool") {
+                    clearSlot(slot);
+                }
+            });
+
+            // Kembalikan status dasar kehidupan
+            p.hp = 100;
+            p.hunger = 80;
+            p.isDead = false;
+            p.x = p.id === 'p1' ? 200 : 700;
+            p.y = 280;
+
+            deadPlayerRef = null;
+            document.getElementById("death-screen").style.display = "none";
+            showModernToast(`🔄 ${p.name} berhasil respawn! Alatmu aman, materialmu hangus!`);
+            updateBarsUI();
+        }
+
+        function checkBlockCollision(nextX, nextY, pSize) {
+            for (let block of placedBlocks) {
+                if (block.id === 'plank' || block.id === 'brick') {
+                    if (nextX < block.x + block.w && nextX + pSize > block.x && nextY < block.y + block.h && nextY + pSize > block.y) return true; 
+                }
+            }
+            return false;
+        }
+
+        function updateLoop() {
+            if (!gameActive) return;
+
+            // Kontrol Jalan Player 1 (Hanya jika hidup & tidak tidur)
+            if (!player1.invOpen && !player1.isSleeping && !player1.isDead) {
+                let dx = 0, dy = 0;
+                if (keys['w']) { dy -= player1.speed; player1.heading = 'N'; }
+                if (keys['s']) { dy += player1.speed; player1.heading = 'S'; }
+                if (keys['a']) { dx -= player1.speed; player1.heading = 'W'; }
+                if (keys['d']) { dx += player1.speed; player1.heading = 'E'; }
+                
+                if (!checkBlockCollision(player1.x + dx, player1.y, player1.size)) player1.x += dx;
+                if (!checkBlockCollision(player1.x, player1.y + dy, player1.size)) player1.y += dy;
+            }
+
+            // Kontrol Jalan Player 2
+            if (gameMode === 'multi' && !player2.invOpen && !player2.isSleeping && !player2.isDead) {
+                let dx = 0, dy = 0;
+                if (keys['arrowup']) { dy -= player2.speed; player2.heading = 'N'; }
+                if (keys['arrowdown']) { dy += player2.speed; player2.heading = 'S'; }
+                if (keys['arrowleft']) { dx -= player2.speed; player2.heading = 'W'; }
+                if (keys['arrowright']) { dx += player2.speed; player2.heading = 'E'; }
+
+                if (!checkBlockCollision(player2.x + dx, player2.y, player2.size)) player2.x += dx;
+                if (!checkBlockCollision(player2.x, player2.y + dy, player2.size)) player2.y += dy;
+            }
+
+            // AI Hantu kejar player terdekat
+            ghosts.forEach(gh => {
+                let target = player1;
+                if (gameMode === 'multi') {
+                    let d1 = Math.hypot(player1.x - gh.x, player1.y - gh.y);
+                    let d2 = Math.hypot(player2.x - gh.x, player2.y - gh.y);
+                    target = (d1 < d2) ? player1 : player2;
+                }
+                if (target.isSleeping || target.isDead) return;
+
+                let angle = Math.atan2(target.y - gh.y, target.x - gh.x);
+                gh.x += Math.cos(angle) * gh.speed; gh.y += Math.sin(angle) * gh.speed;
+            });
+
+            // AI Hewan santai
+            mobs.forEach(mob => {
+                if (mob.ticks <= 0) {
+                    if (Math.random() < 0.2) {
+                        mob.vx = (Math.random() - 0.5) * 0.6; mob.vy = (Math.random() - 0.5) * 0.6;
+                        mob.ticks = Math.floor(Math.random() * 80) + 40;
+                    } else { mob.vx = 0; mob.vy = 0; mob.ticks = 30; }
+                } else { mob.x += mob.vx; mob.y += mob.vy; mob.ticks--; }
+            });
+
+            manageSleepPanelUI();
+            renderGraphics();
+            requestAnimationFrame(updateLoop);
+        }
+
+        function getPlacementGridCoords(pObj) {
+            let offset = 32; let targetX = pObj.x; let targetY = pObj.y;
+            if (pObj.heading === 'N') targetY -= offset; if (pObj.heading === 'S') targetY += offset;
+            if (pObj.heading === 'W') targetX -= offset; if (pObj.heading === 'E') targetX += offset;
+            return { x: Math.floor(targetX / 30) * 30, y: Math.floor(targetY / 30) * 30 };
+        }
+
+        // AKSI TUNGGAL MANUAL (TIDAK ONE HIT)
+        function triggerActionSingle(pObj) {
+            if (pObj.isDead) return;
+            let activeItem = pObj.slots[pObj.selectedHotbarIdx];
+            
+            // 1. MAKAN
+            if (activeItem && ['raw_beef', 'raw_mutton', 'raw_chicken'].includes(activeItem.id)) {
+                let fill = activeItem.id === 'raw_beef' ? 40 : (activeItem.id === 'raw_mutton' ? 25 : 15);
+                pObj.hunger = Math.min(100, pObj.hunger + fill);
+                activeItem.count--; if(activeItem.count <= 0) clearSlot(activeItem);
+                showModernToast(`🥩 Nyam! Hunger ${pObj.name} pulih +${fill}!`);
+                updateBarsUI(); return;
+            }
+
+            // 2. TIDUR KASUR
+            let pCX = pObj.x + pObj.size/2; let pCY = pObj.y + pObj.size/2;
+            let bedFound = placedBlocks.find(b => b.id === 'bed' && Math.hypot(pCX - (b.x+15), pCY - (b.y+15)) < 40);
+            if (bedFound) {
+                if (gameHour >= 18 || gameHour < 6) {
+                    pObj.isSleeping = true; showModernToast(`💤 ${pObj.name} tidur di kasur...`); checkCoopSleepCondition();
+                } else { showModernToast("🌞 Hanya bisa tidur di malam hari!"); }
+                return;
+            }
+
+            // 3. PENEMPATAN BALOK
+            if (activeItem && ['plank', 'brick', 'bed'].includes(activeItem.id)) {
+                let coords = getPlacementGridCoords(pObj);
+                let colP1 = (coords.x < player1.x + player1.size && coords.x + 30 > player1.x && coords.y < player1.y + player1.size && coords.y + 30 > player1.y);
+                let colP2 = (gameMode==='multi' && coords.x < player2.x + player2.size && coords.x + 30 > player2.x && coords.y < player2.y + player2.size && coords.y + 30 > player2.y);
+                if (colP1 || colP2) { showModernToast("⚠️ Jarak penempatan terlalu dekat/menindih badan!"); return; }
+
+                placedBlocks.push({ x: coords.x, y: coords.y, w: 30, h: 30, id: activeItem.id, icon: activeItem.icon });
+                activeItem.count--; if(activeItem.count <= 0) clearSlot(activeItem);
+                showModernToast(`🧱 Berhasil menaruh balok!`); return;
+            }
+
+            // 4. PUKUL HEWAN & HANTU (TIDAK ONE HIT)
+            mobs.forEach((mob, index) => {
+                if (Math.hypot(pCX - mob.x, pCY - mob.y) < 45) {
+                    let dmg = pObj.activeTool === '⚔️' ? 20 : 6; // Butuh 3-5 kali tebas
+                    mob.hp -= dmg;
+                    if (mob.hp <= 0) {
+                        if (mob.id === 'cow') giveItemToPlayer(pObj, 'raw_beef', 'food', '🥩', 1);
+                        if (mob.id === 'sheep') { giveItemToPlayer(pObj, 'raw_mutton', 'food', '🍖', 1); giveItemToPlayer(pObj, 'wool', 'mat', '🐑', 1); }
+                        if (mob.id === 'chicken') giveItemToPlayer(pObj, 'raw_chicken', 'food', '%;">🍗', 1);
+                        mobs.splice(index, 1); showModernToast(`💥 Berhasil berburu ${mob.id.toUpperCase()}!`);
+                    }
+                }
+            });
+
+            ghosts.forEach((gh, index) => {
+                if (Math.hypot(pCX - gh.x, pCY - gh.y) < 45) {
+                    let dmg = pObj.activeTool === '⚔️' ? 20 : 7;
+                    gh.hp -= dmg;
+                    if (gh.hp <= 0) { ghosts.splice(index, 1); showModernToast("✨ Hantu berhasil dimusnahkan!"); }
+                }
+            });
+
+            // 5. PUKUL POHON & BATU (FIX BAR KELIHATAN & NO ONE-HIT)
+            resources.forEach((res, index) => {
+                if (Math.hypot(pCX - (res.x + 13), pCY - (res.y + 13)) < 45) {
+                    let dmg = (res.type==='tree' && pObj.activeTool==='🪓') || (res.type==='stone' && pObj.activeTool==='⛏️') ? 34 : 10; // Butuh 3 kali ketok alat pas
+                    res.hp -= dmg;
+                    if (res.hp <= 0) {
+                        giveItemToPlayer(pObj, res.type === 'tree' ? 'wood' : 'stone', 'mat', res.type === 'tree' ? '🪵' : '🪨', 2);
+                        resources.splice(index, 1);
+                        if (resources.length < 5) spawnResource(Math.random() > 0.5 ? 'tree' : 'stone');
+                    }
+                }
+            });
+        }
+
+        function giveItemToPlayer(pObj, id, type, icon, count) {
+            let existing = pObj.slots.find(s => s.id === id);
+            if (existing) { existing.count += count; } 
+            else {
+                let empty = pObj.slots.find(s => s.id === 'empty');
+                if (empty) { empty.id = id; empty.type = type; empty.icon = icon; empty.count = count; }
+            }
+        }
+
+        function checkCoopSleepCondition() {
+            if (gameMode === 'solo' && player1.isSleeping) triggerFastForwardMorning();
+            else if (gameMode === 'multi' && player1.isSleeping && player2.isSleeping) triggerFastForwardMorning();
+        }
+
+        function triggerFastForwardMorning() {
+            showModernToast("💤 Meniduri kasur bersama... Mempercepat waktu...");
+            setTimeout(() => {
+                gameHour = 6; gameMinute = 0; ambientDarkness = 0; ghosts = [];
+                player1.isSleeping = false; player2.isSleeping = false;
+                showModernToast("☀️ Selamat Pagi! Jam menunjukkan 06:00 AM!");
+                updateClockUI(); updateBarsUI();
+            }, 3000);
+        }
+
+        function wakeUpPlayer() {
+            if(player1.isSleeping) { player1.isSleeping = false; showModernToast("🧍 Player 1 Bangun."); }
+            if(player2.isSleeping) { player2.isSleeping = false; showModernToast("🧍 Player 2 Bangun."); }
+        }
+
+        function pingFriendToSleep() { showModernToast("⏰ WOOYY GEK NDANG TURU! DA KEBANYAKAN GHOST KI!"); }
+
+        function manageSleepPanelUI() {
+            const panel = document.getElementById("sleep-panel"); const txt = document.getElementById("sleep-status-text");
+            if (gameMode === 'multi' && (player1.isSleeping || player2.isSleeping) && !(player1.isSleeping && player2.isSleeping)) {
+                panel.style.display = "block"; txt.innerText = `💤 ${player1.isSleeping?player1.name:player2.name} Sedang Tidur...`;
+            } else { panel.style.display = "none"; }
+        }
+
+        function renderGraphics() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Ground Grass
+            ctx.fillStyle = "#2ecc71"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#27ae60";
+            for(let i=0; i<canvas.width; i+=45) ctx.fillRect(i, 0, 1, canvas.height);
+            for(let j=0; j<canvas.height; j+=45) ctx.fillRect(0, j, canvas.width, 1);
+
+            // Placed Blocks
+            placedBlocks.forEach(block => {
+                if (block.id === 'plank') {
+                    ctx.fillStyle = "#d35400"; ctx.fillRect(block.x, block.y, block.w, block.h);
+                    ctx.fillStyle = "#ba4a00"; ctx.fillRect(block.x, block.y + 6, block.w, 4); ctx.fillRect(block.x, block.y + 18, block.w, 4);
+                } else if (block.id === 'brick') {
+                    ctx.fillStyle = "#7f8c8d"; ctx.fillRect(block.x, block.y, block.w, block.h);
+                    ctx.strokeStyle = "#bdc3c7"; ctx.lineWidth = 1.5; ctx.strokeRect(block.x, block.y, block.w, block.h);
+                    ctx.beginPath(); ctx.moveTo(block.x, block.y+15); ctx.lineTo(block.x+30, block.y+15); ctx.stroke();
+                } else {
+                    ctx.fillStyle = "#e74c3c"; ctx.fillRect(block.x, block.y, block.w, block.h);
+                    ctx.fillStyle = "#fff"; ctx.fillRect(block.x, block.y, block.w, 10);
+                }
+                ctx.strokeStyle = "#111"; ctx.lineWidth = 1; ctx.strokeRect(block.x, block.y, block.w, block.h);
+            });
+
+            // Chest
+            ctx.fillStyle = sharedChest.color; ctx.fillRect(sharedChest.x, sharedChest.y, sharedChest.w, sharedChest.h);
+            ctx.fillStyle = "#f1c40f"; ctx.fillRect(sharedChest.x + 12, sharedChest.y + 13, 8, 7);
+
+            // Resources (FIX: MENAMPILKAN BAR DARAH POHON & BATU KEMBALI)
+            resources.forEach(res => {
+                if(res.type === 'tree') {
+                    ctx.fillStyle = "#5c3a21"; ctx.fillRect(res.x + 9, res.y + 13, 8, 13);
+                    ctx.fillStyle = "#1e824c"; ctx.beginPath(); ctx.arc(res.x+13, res.y+7, 12, 0, Math.PI*2); ctx.fill();
+                } else {
+                    ctx.fillStyle = "#7f8c8d"; ctx.beginPath(); ctx.arc(res.x+13, res.y+13, 11, 0, Math.PI*2); ctx.fill();
+                }
+                
+                // Render Mini Bar Kesehatan Untuk Pohon/Batu saat dipukul
+                if (res.hp < res.maxHp) {
+                    ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(res.x - 2, res.y - 12, 30, 4);
+                    ctx.fillStyle = "#2ecc71"; ctx.fillRect(res.x - 2, res.y - 12, 30 * (res.hp / res.maxHp), 4);
+                }
+            });
+
+            // Entities (Mobs & Ghosts)
+            mobs.concat(ghosts).forEach(m => { 
+                ctx.font = "24px Arial"; ctx.textAlign = "center"; ctx.fillText(m.icon, m.x, m.y); 
+                ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(m.x - 15, m.y - 25, 30, 4);
+                ctx.fillStyle = m.id === 'ghost' ? "#9b59b6" : "#2ecc71";
+                ctx.fillRect(m.x - 15, m.y - 25, 30 * (m.hp/m.maxHp), 4);
+            });
+
+            // Players Token
+            drawPlayerToken(player1);
+            if (gameMode === 'multi') drawPlayerToken(player2);
+
+            // Night Filter
+            if (ambientDarkness > 0) { ctx.fillStyle = `rgba(11, 11, 24, ${ambientDarkness})`; ctx.fillRect(0, 0, canvas.width, canvas.height); }
+
+            // UI Inventory Layer
+            clickRects = [];
+            if (player1.invOpen) drawMinecraftInterface("LEFT", player1);
+            if (player2.invOpen && gameMode === 'multi') drawMinecraftInterface("RIGHT", player2);
+
+            if (selectedHandItem) {
+                ctx.font = "26px Arial"; ctx.textAlign = "center"; ctx.fillText(selectedHandItem.icon.split('_')[0], mouseX, mouseY + 10);
+            }
+        }
+
+        function drawPlayerToken(pObj) {
+            if (pObj.isDead) {
+                ctx.font = "24px Arial"; ctx.textAlign = "center"; ctx.fillText("💀", pObj.x + 11, pObj.y + 15);
+                return;
+            }
+            if (pObj.isSleeping) {
+                ctx.fillStyle = "#fff"; ctx.font = "bold 13px Arial"; ctx.textAlign = "center"; ctx.fillText("💤 Tidur", pObj.x + 11, pObj.y - 10);
+                return;
+            }
+
+            ctx.fillStyle = pObj.color; ctx.fillRect(pObj.x, pObj.y, pObj.size, pObj.size);
+            ctx.fillStyle = "#000"; ctx.fillRect(pObj.x+3, pObj.y+4, 3, 4); ctx.fillRect(pObj.x+15, pObj.y+4, 3, 4);
+
+            let activeItem = pObj.slots[pObj.selectedHotbarIdx];
+            if(activeItem && activeItem.count > 0) {
+                ctx.font = "12px Arial"; ctx.textAlign = "center"; ctx.fillText(activeItem.icon.split('_')[0], pObj.x + pObj.size/2, pObj.y - 26);
+            }
+            ctx.fillStyle = "#fff"; ctx.font = "bold 9px 'Courier New'"; ctx.textAlign = "center"; ctx.fillText(pObj.name, pObj.x + pObj.size/2, pObj.y - 12);
+
+            if (!pObj.invOpen && activeItem && ['plank','brick','bed'].includes(activeItem.id)) {
+                let coords = getPlacementGridCoords(pObj);
+                ctx.fillStyle = "rgba(255, 255, 255, 0.4)"; ctx.fillRect(coords.x, coords.y, 30, 30);
+                ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.strokeRect(coords.x, coords.y, 30, 30);
+            }
+        }
+
+        function drawMinecraftInterface(side, pObj) {
+            let startX = (side === "LEFT") ? 15 : canvas.width - 385;
+            let startY = 25; let w = 370, h = 500;
+
+            ctx.fillStyle = "#c6c6c6"; ctx.fillRect(startX, startY, w, h);
+            ctx.strokeStyle = "#2c2c2c"; ctx.lineWidth = 4; ctx.strokeRect(startX, startY, w, h);
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(startX + 4, startY + 4, w - 8, h - 8);
+
+            ctx.fillStyle = "#3f3f3f"; ctx.font = "bold 11px 'Courier New'"; ctx.textAlign = "left";
+            ctx.fillText(`🎒 TAS: ${pObj.name.toUpperCase()}`, startX + 16, startY + 24);
+
+            // Crafting Matrix
+            ctx.fillText("CRAFTING GRID", startX + 110, startY + 32);
+            for(let row=0; row<2; row++) {
+                for(let col=0; col<2; col++) {
+                    let idx = row * 2 + col; let cellX = startX + 110 + (col * 50); let cellY = startY + 42 + (row * 50);
+                    drawSlotBox(cellX, cellY, pObj.craftGrid[idx].icon, pObj.craftGrid[idx].count, false);
+                    clickRects.push({ x: cellX, y: cellY, w: 46, h: 46, zone: "craft_grid", index: idx, pObj: pObj });
+                }
+            }
+            ctx.font = "bold 14px Arial"; ctx.fillText("➡️", startX + 220, startY + 74);
+            let rx = startX + 255; let ry = startY + 50;
+            drawSlotBox(rx, ry, pObj.craftResult.icon, pObj.craftResult.count, false);
+            clickRects.push({ x: rx, y: ry, w: 46, h: 46, zone: "craft_result", pObj: pObj });
+
+            // Bag Storage
+            ctx.font = "bold 10px 'Courier New'"; ctx.fillText("🔥 HOTBAR & STORAGE UTAMA", startX + 16, startY + 162);
+            for (let i = 0; i < 10; i++) {
+                let col = i % 5; let row = Math.floor(i / 5); let cx = startX + 16 + (col * 68); let cy = startY + 175 + (row * 65);
+                let isSelected = (row === 0 && pObj.selectedHotbarIdx === col);
+                drawSlotBox(cx, cy, pObj.slots[i].icon, pObj.slots[i].count, isSelected);
+                clickRects.push({ x: cx, y: cy, w: 54, h: 54, zone: "player_bag", index: i, pObj: pObj });
+            }
+
+            // Chest Storage
+            ctx.fillStyle = "#555"; ctx.fillRect(startX + 12, startY + 315, w - 24, 2);
+            ctx.fillStyle = "#3f3f3f"; ctx.fillText("📦 PETI BERSAMA (SHARED STORAGE)", startX + 16, startY + 334);
+            for (let i = 0; i < 5; i++) {
+                let cx = startX + 16 + (i * 68); let cy = startY + 348;
+                drawSlotBox(cx, cy, chestSlots[i].icon, chestSlots[i].count, false);
+                clickRects.push({ x: cx, y: cy, w: 54, h: 54, zone: "chest_storage", index: i, pObj: pObj });
+            }
+        }
+
+        function drawSlotBox(x, y, iconTag, count, activeBorder) {
+            ctx.fillStyle = activeBorder ? "#f1c40f" : "#8b8b8b"; ctx.fillRect(x, y, 48, 48);
+            ctx.strokeStyle = activeBorder ? "#d35400" : "#373737"; ctx.lineWidth = 2; ctx.strokeRect(x, y, 48, 48);
+
+            if (count > 0) {
+                if (iconTag === "🧱_wood") {
+                    ctx.fillStyle = "#d35400"; ctx.fillRect(x+6, y+6, 36, 36);
+                    ctx.fillStyle = "#ba4a00"; ctx.fillRect(x+6, y+14, 36, 4); ctx.fillRect(x+6, y+28, 36, 4);
+                } else if (iconTag === "🧱_stone") {
+                    ctx.fillStyle = "#7f8c8d"; ctx.fillRect(x+6, y+6, 36, 36); ctx.strokeStyle = "#bdc3c7"; ctx.strokeRect(x+6, y+6, 36, 36);
+                } else {
+                    ctx.fillStyle = "#fff"; ctx.font = "22px Arial"; ctx.textAlign = "center"; ctx.fillText(iconTag, x + 24, y + 33);
+                }
+                ctx.font = "bold 11px 'Courier New'"; ctx.textAlign = "right"; ctx.fillStyle = "#000"; ctx.fillText(count, x + 45, y + 45);
+                ctx.fillStyle = "#fff"; ctx.fillText(count, x + 44, y + 44);
+            }
+        }
+
+        function verifyCrafting(pObj) {
+            let g = pObj.craftGrid;
+            if ((g[0].id=='wood' && g[1].id=='wood') || (g[0].id=='wood' && g[2].id=='wood')) { pObj.craftResult = { id: "plank", icon: "🧱_wood", count: 4 }; return; }
+            if ((g[0].id=='stone' && g[1].id=='stone') || (g[0].id=='stone' && g[2].id=='stone')) { pObj.craftResult = { id: "brick", icon: "🧱_stone", count: 4 }; return; }
+            if ((g[0].id=='wool' && g[2].id=='wood') || (g[1].id=='wool' && g[3].id=='wood')) { pObj.craftResult = { id: "bed", icon: "🛏️", count: 1 }; return; }
+            pObj.craftResult = { id: "empty", icon: "", count: 0 };
+        }
+
+        window.addEventListener("mousemove", e => { let rect = canvas.getBoundingClientRect(); mouseX = e.clientX - rect.left; mouseY = e.clientY - rect.top; });
+        window.addEventListener("contextmenu", e => e.preventDefault());
+
+        canvas.addEventListener("mousedown", e => {
+            if (!player1.invOpen && !player2.invOpen) return;
+            let rect = canvas.getBoundingClientRect(); let mx = e.clientX - rect.left; let my = e.clientY - rect.top;
+            let isRight = (e.button === 2);
+
+            let cell = clickRects.find(c => mx >= c.x && mx <= c.x + c.w && my >= c.y && my <= c.y + c.h);
+            if (!cell) return;
+
+            let pObj = cell.pObj; let target = null;
+            if (cell.zone === "player_bag") target = pObj.slots[cell.index];
+            if (cell.zone === "craft_grid") target = pObj.craftGrid[cell.index];
+            if (cell.zone === "craft_result") target = pObj.craftResult;
+            if (cell.zone === "chest_storage") target = chestSlots[cell.index];
+
+            if (!target) return;
+
+            if (isRight) {
+                if (selectedHandItem === null) {
+                    if (target.count > 1) {
+                        let half = Math.floor(target.count / 2); selectedHandItem = { ...target, count: half }; target.count -= half;
+                        if(cell.zone === "craft_result") clearSlot(pObj.craftResult);
+                    }
+                } else {
+                    if (target.id === "empty" || target.id === selectedHandItem.id) {
+                        if (target.id === "empty") { target.id = selectedHandItem.id; target.type = selectedHandItem.type; target.icon = selectedHandItem.icon; target.count = 1; } 
+                        else { target.count++; }
+                        selectedHandItem.count--; if (selectedHandItem.count <= 0) selectedHandItem = null;
+                    }
+                }
+                if (cell.zone === "craft_grid") verifyCrafting(pObj); return;
+            }
+
+            if (selectedHandItem === null) {
+                if (target.count > 0) {
+                    selectedHandItem = { ...target };
+                    if (cell.zone === "craft_result") {
+                        pObj.craftGrid.forEach(g => { if(g.count>0) g.count--; if(g.count<=0) clearSlot(g); }); clearSlot(pObj.craftResult);
+                    } else { clearSlot(target); }
+                }
+            } else {
+                if (cell.zone === "craft_result") return;
+                if (target.id === "empty" || target.id === selectedHandItem.id) {
+                    if (target.id === selectedHandItem.id) { target.count += selectedHandItem.count; }
+                    else { target.id = selectedHandItem.id; target.type = selectedHandItem.type; target.icon = selectedHandItem.icon; target.count = selectedHandItem.count; }
+                    selectedHandItem = null;
+                } else {
+                    let tmp = { ...target }; target.id = selectedHandItem.id; target.type = selectedHandItem.type; target.icon = selectedHandItem.icon; target.count = selectedHandItem.count; selectedHandItem = tmp;
+                }
+            }
+            if (cell.zone === "player_bag" && cell.index < 5 && pObj.slots[cell.index].type === 'tool') pObj.activeTool = pObj.slots[cell.index].icon;
+            verifyCrafting(pObj);
+        });
+
+        function openSaveMenu() {
+            document.getElementById("beranda-screen").style.display = "none"; document.getElementById("save-screen").style.display = "block";
+            for(let i=1; i<=3; i++) {
+                let saved = localStorage.getItem(`craft_save_slot_v55_${i}`);
+                document.getElementById(`slot-${i}-info`).innerText = saved ? "📂 TERISI (KLIK UNTUK LOAD GAME)" : "❌ KOSONG (KLIK UNTUK BUAT BARU)";
+            }
+        }
+
+        function executeSlotAction(slotNum) {
+            currentSelectedSlot = slotNum;
+            let data = localStorage.getItem(`craft_save_slot_v55_${slotNum}`);
+            if(data) {
+                let parsed = JSON.parse(data); player1 = parsed.p1; player2 = parsed.p2; placedBlocks = parsed.blocks; chestSlots = parsed.chest; gameHour = parsed.hour || 8; gameMinute = parsed.minute || 0;
+                showModernToast(`📂 Slot ${slotNum} Berhasil Dimuat!`);
+            } else { showModernToast(`✨ Petualangan Baru di Slot ${slotNum}!`); }
+            selectPlayMode('multi');
+        }
+
+        function saveGameToCurrentSlot() {
+            let saveState = { p1: player1, p2: player2, blocks: placedBlocks, chest: chestSlots, hour: gameHour, minute: gameMinute };
+            localStorage.setItem(`craft_save_slot_v55_${currentSelectedSlot}`, JSON.stringify(saveState));
+            showModernToast(`💾 Progres disimpan otomatis di Slot ${currentSelectedSlot}!`);
+        }
+
+        function backToMenu() { document.getElementById("save-screen").style.display = "none"; document.getElementById("beranda-screen").style.display = "block"; }
+
+        window.addEventListener("keydown", e => {
+            let k = e.key.toLowerCase(); keys[k] = true;
+
+            if (player1.isDead || player2.isDead) return; // Kunci input jika ada yang mati menunggu respawn
+
+            if (!player1.invOpen && e.code.startsWith('Digit')) {
+                let num = parseInt(e.key); if (num >= 1 && num <= 5) { player1.selectedHotbarIdx = num - 1; if (player1.slots[num - 1].type === 'tool') player1.activeTool = player1.slots[num - 1].icon; }
+            }
+            if (gameMode === 'multi' && !player2.invOpen && e.code.startsWith('Numpad')) {
+                let num = parseInt(e.key); if (num >= 1 && num <= 5) { player2.selectedHotbarIdx = num - 1; if (player2.slots[num - 1].type === 'tool') player2.activeTool = player2.slots[num - 1].icon; }
+            }
+
+            if (k === 'f' && gameActive && !player1.invOpen) triggerActionSingle(player1);
+            if (e.key === ' ' && gameActive && gameMode === 'multi' && !player2.invOpen) { e.preventDefault(); triggerActionSingle(player2); }
+
+            if (k === 'e' && gameActive) { player1.invOpen = !player1.invOpen; player2.invOpen = false; selectedHandItem = null; }
+            if (k === 'p' && gameActive && gameMode === 'multi') { player2.invOpen = !player2.invOpen; player1.invOpen = false; selectedHandItem = null; }
+
+            if (e.key === "Escape" && gameActive) {
+                saveGameToCurrentSlot(); gameActive = false; document.getElementById("beranda-screen").style.display = "block"; canvas.style.display="none"; document.getElementById("hud-overlay").style.display = "none"; document.getElementById("sleep-panel").style.display = "none";
+            }
+        });
+
+        window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+    </script>
+</body>
+</html>

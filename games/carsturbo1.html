@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cars Turbo: Hyper Highway RPG</title>
+    <style>
+        body { 
+            background-color: #0b0b0f; color: #fff; font-family: 'Courier New', Courier, monospace; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; 
+            height: 100vh; margin: 0; overflow: hidden; user-select: none;
+        }
+        .screen { 
+            background: rgba(15, 15, 25, 0.98); border: 4px solid #ff3366; padding: 20px; 
+            border-radius: 10px; box-shadow: 0 0 25px rgba(255, 51, 102, 0.4); text-align: center; 
+            width: 440px; position: relative;
+        }
+        canvas { border: 4px solid #333; background-color: #1a1a1a; box-shadow: 0 0 20px rgba(0,0,0,0.7); }
+        h1 { color: #ff3366; text-shadow: 0 0 10px rgba(255, 51, 102, 0.6); margin: 0 0 5px 0; font-size: 32px; letter-spacing: 1px; }
+        h3 { margin: 10px 0 5px 0; font-size: 14px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+        
+        button { 
+            background-color: #ff3366; color: white; border: 2px solid #fff; padding: 10px; 
+            font-weight: bold; cursor: pointer; width: 100%; margin-top: 10px; font-family: 'Courier New'; font-size: 15px;
+        }
+        button:hover { background-color: #fff; color: #ff3366; }
+        
+        .hud { width: 450px; display: flex; justify-content: space-between; font-weight: bold; color: #ff3366; margin-bottom: 5px; font-size: 14px; }
+        #custom-toast {
+            position: fixed; top: -100px; background: #111; border: 2px solid #ffeb3b; color: #ffeb3b;
+            padding: 12px 25px; font-weight: bold; font-size: 13px; box-shadow: 0 0 15px rgba(255, 235, 59, 0.4); border-radius: 4px; transition: top 0.4s ease; z-index: 9999;
+        }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 999; display: none; }
+        .modal-box { background: #111116; border: 3px solid #ffeb3b; padding: 20px; width: 320px; text-align: center; border-radius: 6px; box-shadow: 0 0 20px rgba(255, 235, 59, 0.3); }
+        .modal-input { width: 90%; background: #000; border: 1px solid #ffeb3b; color: #ffeb3b; padding: 8px; font-family: 'Courier New'; font-weight: bold; text-align: center; font-size: 16px; margin: 15px 0; }
+        .dev-mini-btn { position: absolute; top: 10px; right: 10px; background: transparent; border: none; color: #222; font-size: 11px; cursor: pointer; width: auto; margin: 0; padding: 2px; }
+        .dev-mini-btn:hover { color: #ffeb3b; }
+        .dev-panel { background: #0d0d14; border: 2px dashed #ffeb3b; padding: 10px; margin-top: 12px; text-align: left; display: none; }
+        .dev-btn { background: #222; color: #ffeb3b; border: 1px solid #ffeb3b; padding: 5px; font-size: 11px; margin-top: 5px; width: 48%; cursor: pointer; }
+        .dev-btn:hover { background: #ffeb3b; color: #000; }
+
+        /* SHOP STYLE CONTAINER */
+        .shop-scroll { max-height: 280px; overflow-y: auto; padding-right: 5px; text-align: left; }
+        .shop-item { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #222; padding: 8px 0; font-size: 12px; }
+        .buy-btn { background: #27ae60; color: white; border: 1px solid #fff; padding: 4px 8px; font-size: 11px; cursor: pointer; width: auto; margin: 0; }
+        .buy-btn:hover { background: #fff; color: #27ae60; }
+        .buy-btn.owned { background: #2980b9; color: #fff; border-color: #fff; }
+        .buy-btn.active-skin { background: #f1c40f; color: #000; border-color: #000; font-weight: bold; }
+
+        /* STATUS BARS CONFIG */
+        .status-container { width: 450px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 8px; display: none; }
+        .bar-bg { background: #222; height: 6px; border: 1px solid #333; position: relative; }
+        .bar-fill { height: 100%; width: 100%; transition: width 0.1s linear; }
+    </style>
+</head>
+<body>
+
+    <div id="custom-toast">NOTIFIKASI</div>
+
+    <div id="dev-modal" class="modal-overlay">
+        <div class="modal-box">
+            <div style="color:#ffeb3b; font-weight:bold; font-size:14px;">🔑 SYSTEM DEVELOPER DEVRULEZ</div>
+            <input type="password" id="dev-pass-input" class="modal-input" placeholder="PASSWORD">
+            <button onclick="verifyDevPassword()" style="background:#ffeb3b; color:#000; font-size:12px; padding:6px; margin:0;">VERIFIKASI</button>
+            <button onclick="closeDevModal()" style="background:#333; color:#fff; font-size:11px; padding:4px; margin-top:5px; border-color:#555;">BATAL</button>
+        </div>
+    </div>
+
+    <div id="lobby-screen" class="screen">
+        <button class="dev-mini-btn" onclick="openDevModal()">[🛠️]</button>
+        <h1>CARS TURBO</h1>
+        <p style="font-size: 11px; color: #ff3366; font-weight: bold; margin-bottom: 15px;">🌟 ULTIMATE ARCADE RACING RPG v5.5 🌟</p>
+        
+        <div style="background: #161622; padding: 12px; border-radius: 5px; border: 1px solid #333; margin-bottom: 15px;">
+            <div style="color: #ffeb3b; font-weight: bold; font-size: 16px; margin-bottom: 5px;">💰 KOIN MU: <span id="lobby-coins">0</span></div>
+            <div style="color: #00f2ff; font-weight: bold; font-size: 16px;">🏆 HIGHSCORE: <span id="highscore-val">0</span> m</div>
+        </div>
+        
+        <button onclick="initAudioEngine(); startGame()">GASPOL SEKARANG!</button>
+        <button onclick="openShop()" style="background: #00f2ff; color:#000; border-color:#fff; margin-top:8px;">🛒 MASUK TUNING SHOP</button>
+        
+        <div id="secure-dev-panel" class="dev-panel">
+            <div style="color:#ffeb3b; font-size:12px; font-weight:bold; border-bottom:1px dashed #ffeb3b; padding-bottom:3px;">🛠️ SECRET DEV PANEL:</div>
+            <button class="dev-btn" onclick="cheatMoney()">➕ MOD +10K</button>
+            <button class="dev-btn" onclick="resetDevStatus()" style="color: #ff3333; border-color: #ff3333; float: right;">⚠️ RESET ALL</button>
+            <div style="clear: both;"></div>
+        </div>
+    </div>
+
+    <div id="shop-screen" class="screen" style="display: none; border-color: #00f2ff; box-shadow: 0 0 25px rgba(0, 242, 255, 0.4);">
+        <h2 style="color: #00f2ff; margin-top:0; font-size:20px; margin-bottom:5px;">🛒 RETRO TUNING SHOP</h2>
+        <div style="color: #ffeb3b; font-weight: bold; margin-bottom: 10px; font-size:14px;">DOMPET: 💰 <span id="shop-coins-val">0</span></div>
+        
+        <div class="shop-scroll">
+            <h3 style="color:#ff3366;">⚡ UPGRADE PERFORMA</h3>
+            <div class="shop-item"><div>Tabung NOS Mekanik <span style="color:#888;"><br>(Hold SHIFT / SPACE)</span></div><button id="btn-shop-nos" class="buy-btn" onclick="buyUpgrade('nos', 400)">💰 400</button></div>
+            <div class="shop-item"><div>Bumper Baja <span style="color:#888;"><br>(Sistem Auto-Regen 20s)</span></div><button id="btn-shop-bumper" class="buy-btn" onclick="buyUpgrade('bumper', 800)">💰 800</button></div>
+
+            <h3 style="color:#00f2ff;">🚗 SKIN MOBIL BALAP</h3>
+            <div class="shop-item"><div>Merah Original</div><button id="btn-skin-car-red" class="buy-btn" onclick="selectSkin('car', 'red')">GUNAKAN</button></div>
+            <div class="shop-item"><div>Cyber Blue Paint</div><button id="btn-skin-car-blue" class="buy-btn" onclick="buySkin('car', 'blue', 300)">💰 300</button></div>
+            <div class="shop-item"><div>Bumblebee Yellow</div><button id="btn-skin-car-yellow" class="buy-btn" onclick="buySkin('car', 'yellow', 500)">💰 500</button></div>
+
+            <h3 style="color:#2ecc71;">🟢 SKIN NEON KOLONG</h3>
+            <div class="shop-item"><div>Tanpa Neon</div><button id="btn-skin-neon-none" class="buy-btn" onclick="selectSkin('neon', 'none')">GUNAKAN</button></div>
+            <div class="shop-item"><div>Neon Hijau Toxic</div><button id="btn-skin-neon-green" class="buy-btn" onclick="buySkin('neon', 'green', 250)">💰 250</button></div>
+            <div class="shop-item"><div>Neon Cyberpunk Pink</div><button id="btn-skin-neon-pink" class="buy-btn" onclick="buySkin('neon', 'pink', 400)">💰 400</button></div>
+
+            <h3 style="color:#f1c40f;">🛣️ SKIN LATAR JALANAN</h3>
+            <div class="shop-item"><div>Tol Klasik (Default)</div><button id="btn-skin-map-classic" class="buy-btn" onclick="selectSkin('map', 'classic')">GUNAKAN</button></div>
+            <div class="shop-item"><div>Kota Malam Neon</div><button id="btn-skin-map-city" class="buy-btn" onclick="buySkin('map', 'city', 600)">💰 600</button></div>
+            <div class="shop-item"><div>Jembatan Selat Laut</div><button id="btn-skin-map-bridge" class="buy-btn" onclick="buySkin('map', 'bridge', 900)">💰 900</button></div>
+            <div class="shop-item"><div>🪐 Angkasa Absurd</div><button id="btn-skin-map-space" class="buy-btn" onclick="buySkin('map', 'space', 1500)">💰 1500</button></div>
+        </div>
+        <button onclick="closeShop()" style="background: #444; border-color: #666; font-size:13px; margin-top:10px;">⬅️ KEMBALI KE LOBI</button>
+    </div>
+
+    <div id="game-container" style="display: none;">
+        <div class="hud">
+            <div>JARAK: <span id="dist-val">0</span> m</div>
+            <div style="color: #ffeb3b;">KOIN GET: <span id="game-coins">0</span></div>
+            <div>SPEED: <span id="speed-val">0</span> km/h</div>
+        </div>
+        
+        <div id="bars-wrapper" class="status-container">
+            <div class="bar-bg">
+                <div id="nos-bar-val" class="bar-fill" style="background:#00f2ff; width:100%; box-shadow:0 0 6px #00f2ff;"></div>
+                <div style="position:absolute; top:-12px; left:0; font-size:8px; color:#00f2ff; font-weight:bold;">NOS TANK</div>
+            </div>
+            <div class="bar-bg">
+                <div id="armor-bar-val" class="bar-fill" style="background:#2ecc71; width:100%; box-shadow:0 0 6px #2ecc71;"></div>
+                <div id="armor-text" style="position:absolute; top:-12px; left:0; font-size:8px; color:#2ecc71; font-weight:bold;">ARMOR READY</div>
+            </div>
+        </div>
+
+        <canvas id="roadCanvas" width="450" height="500"></canvas>
+        <p id="control-hint" style="font-size: 11px; color: #666; margin-top: 6px;">[W,A,S,D] Kemudi Balap</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("roadCanvas");
+        const ctx = canvas.getContext("2d");
+
+        let gameActive = false, gameOverState = false;
+        let score = 0, coinsCollected = 0;
+        
+        let totalCoins = parseInt(localStorage.getItem("turbo_coins")) || 0;
+        let highscore = parseInt(localStorage.getItem("turbo_topdown_highscore")) || 0;
+        
+        let upgrades = JSON.parse(localStorage.getItem("turbo_upgrades")) || { nos: false, bumper: false };
+        let ownedSkins = JSON.parse(localStorage.getItem("turbo_owned_skins")) || { car: ['red'], neon: ['none'], map: ['classic'] };
+        let activeSkins = JSON.parse(localStorage.getItem("turbo_active_skins")) || { car: 'red', neon: 'none', map: 'classic' };
+
+        let scrollSpeed = 5, baseSpeed = 5, maxScrollSpeed = 16, lineOffset = 0;
+        let obstacles = [], environment = [], coinsArray = [];
+        let keys = {};
+
+        // NOS & REGEN SHIELD MECHANICAL STATE
+        let nosEnergy = 100, maxNosEnergy = 100, nosActive = false, lastNosUsedTime = 0;
+        let armorReady = true, armorCooldownTimer = 0, maxArmorCooldown = 20000; 
+        let isInvulnerable = false, invulnerableTimer = 0; 
+
+        // 🌈 BOLA PELANGI HYPER NOS SYSTEM
+        let rainbowBall = null; 
+        let lastBallSpawnTime = 0;
+        let hyperNosActive = false;
+        let hyperNosTimer = 0;
+
+        let player = { x: 210, y: 380, w: 30, h: 55, speed: 4.5 };
+
+        updateLobbyUI();
+
+        function showToast(message, color = "#ffeb3b") {
+            const toast = document.getElementById("custom-toast");
+            toast.innerText = message; toast.style.borderColor = color; toast.style.color = color;
+            toast.style.boxShadow = `0 0 15px ${color}66`; toast.style.top = "20px";
+            setTimeout(() => { toast.style.top = "-100px"; }, 2000);
+        }
+
+        function openDevModal() { document.getElementById("dev-pass-input").value = ""; document.getElementById("dev-modal").style.display = "flex"; }
+        function closeDevModal() { document.getElementById("dev-modal").style.display = "none"; }
+        function verifyDevPassword() {
+            if (document.getElementById("dev-pass-input").value === "DEVRULEZ") {
+                closeDevModal(); document.getElementById("secure-dev-panel").style.display = "block";
+                showToast("🔓 ACCESS GRANTED!", "#2ecc71");
+            } else { closeDevModal(); showToast("🔒 ACCESS DENIED!", "#ff3333"); }
+        }
+
+        function openShop() { document.getElementById("lobby-screen").style.display = "none"; document.getElementById("shop-screen").style.display = "block"; document.getElementById("shop-coins-val").innerText = totalCoins; updateShopButtons(); }
+        function closeShop() { document.getElementById("shop-screen").style.display = "none"; document.getElementById("lobby-screen").style.display = "block"; updateLobbyUI(); }
+
+        function updateLobbyUI() {
+            document.getElementById("highscore-val").innerText = highscore;
+            document.getElementById("lobby-coins").innerText = totalCoins;
+        }
+
+        function updateShopButtons() {
+            if (upgrades.nos) { document.getElementById("btn-shop-nos").innerText = "TERPASANG"; document.getElementById("btn-shop-nos").className = "buy-btn owned"; }
+            if (upgrades.bumper) { document.getElementById("btn-shop-bumper").innerText = "TERPASANG"; document.getElementById("btn-shop-bumper").className = "buy-btn owned"; }
+            
+            syncSkinBtn('car', 'red'); syncSkinBtn('car', 'blue'); syncSkinBtn('car', 'yellow');
+            syncSkinBtn('neon', 'none'); syncSkinBtn('neon', 'green'); syncSkinBtn('neon', 'pink');
+            syncSkinBtn('map', 'classic'); syncSkinBtn('map', 'city'); syncSkinBtn('map', 'bridge'); syncSkinBtn('map', 'space');
+        }
+
+        function syncSkinBtn(type, id) {
+            const btn = document.getElementById(`btn-skin-${type}-${id}`);
+            if (!btn) return;
+            if (activeSkins[type] === id) { btn.innerText = "AKTIF"; btn.className = "buy-btn active-skin"; }
+            else if (ownedSkins[type].includes(id)) { btn.innerText = "GUNAKAN"; btn.className = "buy-btn owned"; }
+        }
+
+        function buyUpgrade(id, price) {
+            if (totalCoins >= price && !upgrades[id]) {
+                totalCoins -= price; upgrades[id] = true;
+                localStorage.setItem("turbo_coins", totalCoins); localStorage.setItem("turbo_upgrades", JSON.stringify(upgrades));
+                document.getElementById("shop-coins-val").innerText = totalCoins; updateShopButtons();
+                showToast("🎉 Performa Berhasil Di-Upgrade!", "#2ecc71");
+            } else if (upgrades[id]) { showToast("Sistem ini sudah dibeli!"); } else { showToast("❌ Uang Tidak Cukup!", "#ff3333"); }
+        }
+
+        function buySkin(type, id, price) {
+            if (ownedSkins[type].includes(id)) { selectSkin(type, id); return; }
+            if (totalCoins >= price) {
+                totalCoins -= price; ownedSkins[type].push(id); activeSkins[type] = id;
+                localStorage.setItem("turbo_coins", totalCoins);
+                localStorage.setItem("turbo_owned_skins", JSON.stringify(ownedSkins));
+                localStorage.setItem("turbo_active_skins", JSON.stringify(activeSkins));
+                document.getElementById("shop-coins-val").innerText = totalCoins; updateShopButtons();
+                showToast("🛍️ Kosmetik Baru Berhasil Dibeli & Dipasang!", "#2ecc71");
+            } else { showToast("❌ Koin Tidak Cukup untuk skin ini!", "#ff3333"); }
+        }
+
+        function selectSkin(type, id) {
+            if (ownedSkins[type].includes(id)) {
+                activeSkins[type] = id; localStorage.setItem("turbo_active_skins", JSON.stringify(activeSkins));
+                updateShopButtons(); showToast("🔄 Skin Berhasil Ditukar!", "#00f2ff");
+            }
+        }
+
+        function cheatMoney() { totalCoins += 10000; localStorage.setItem("turbo_coins", totalCoins); updateLobbyUI(); showToast("💰 MOD CHEAT +10K!", "#ffeb3b"); }
+        function resetDevStatus() { localStorage.clear(); showToast("♻️ SYSTEM WIPED!", "#ff3333"); setTimeout(() => { location.reload(); }, 1200); }
+
+        // AUDIO ENGINE RETRO SYNTHESIZER
+        let audioCtx = null, musicInterval = null;
+        function initAudioEngine() {
+            if (audioCtx) return;
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            const bassNotes = [55, 55, 65.41, 65.41, 73.42, 73.42, 82.41, 82.41];
+            let step = 0;
+            musicInterval = setInterval(() => {
+                if (!gameActive || gameOverState) return;
+                let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(bassNotes[step % bassNotes.length], audioCtx.currentTime);
+                // Musik jadi makin cepet tinggi pitch-nya pas Hyper NOS aktif
+                if (hyperNosActive) osc.frequency.setValueAtTime(bassNotes[step % bassNotes.length] * 1.5, audioCtx.currentTime);
+                gain.gain.setValueAtTime((nosActive || hyperNosActive) ? 0.08 : 0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.22);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.25); step++;
+            }, 180);
+        }
+
+        function playRetroCrashSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.type = 'sawtooth'; osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+            osc.frequency.linearRampToValueAtTime(30, audioCtx.currentTime + 0.6); 
+            gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+        }
+
+        function playCoinSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.type = 'sine'; osc.frequency.setValueAtTime(587.33, audioCtx.currentTime); 
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.08); 
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+        }
+
+        function playHyperSound() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator(); let gain = audioCtx.createGain();
+            osc.type = 'triangle'; osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.4);
+            gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.4);
+        }
+
+        function startGame() {
+            document.getElementById("lobby-screen").style.display = "none";
+            document.getElementById("game-container").style.display = "block";
+            
+            gameActive = true; gameOverState = false; isInvulnerable = false; hyperNosActive = false;
+            score = 0; coinsCollected = 0; baseSpeed = 5; scrollSpeed = baseSpeed;
+            obstacles = []; environment = []; coinsArray = []; rainbowBall = null;
+            player.x = 210; player.y = 380;
+            
+            lastBallSpawnTime = Date.now();
+
+            if (upgrades.nos || upgrades.bumper) {
+                document.getElementById("bars-wrapper").style.display = "grid";
+                nosEnergy = maxNosEnergy;
+            }
+            armorReady = upgrades.bumper;
+            
+            if(upgrades.nos) document.getElementById("control-hint").innerText = "[W,A,S,D] Setir | Tahan [SHIFT / SPACE] Buat NOS!";
+            else document.getElementById("control-hint").innerText = "[W,A,S,D] Kendalikan Mobil!";
+
+            for(let i=0; i<6; i++) { environment.push({ x: 15, y: i * 100 }); environment.push({ x: 410, y: i * 100 }); }
+            requestAnimationFrame(update);
+        }
+
+        function update() {
+            if (!gameActive) return;
+
+            if (!gameOverState) {
+                if (keys['a'] || keys['arrowleft']) player.x -= player.speed;
+                if (keys['d'] || keys['arrowright']) player.x += player.speed;
+                if (keys['w'] || keys['arrowup']) player.y -= player.speed - 1; 
+                if (keys['s'] || keys['arrowdown']) player.y += player.speed;
+
+                player.x = Math.max(55, Math.min(player.x, 450 - 55 - player.w));
+                player.y = Math.max(50, Math.min(player.y, 500 - player.h - 20));
+
+                // 🌈 TIMING & SPAWNING BOLA PELANGI SETIAP 20 DETIK
+                let currentTime = Date.now();
+                if (!rainbowBall && (currentTime - lastBallSpawnTime >= 20000)) {
+                    let lanes = [85, 165, 245, 325];
+                    rainbowBall = {
+                        x: lanes[Math.floor(Math.random() * lanes.length)] - 5,
+                        y: -40,
+                        radius: 12,
+                        pulse: 0
+                    };
+                    lastBallSpawnTime = currentTime;
+                }
+
+                // PERGERAKAN BOLA PELANGI
+                if (rainbowBall) {
+                    rainbowBall.y += scrollSpeed;
+                    rainbowBall.pulse += 0.1;
+
+                    // HITBOX DETEKSI BOLA PELANGI
+                    let distX = Math.abs(rainbowBall.x - (player.x + player.w/2));
+                    let distY = Math.abs(rainbowBall.y - (player.y + player.h/2));
+                    if (distX < (player.w/2 + rainbowBall.radius) && distY < (player.h/2 + rainbowBall.radius)) {
+                        rainbowBall = null;
+                        hyperNosActive = true;
+                        hyperNosTimer = Date.now();
+                        playHyperSound();
+                        showToast("🔥 HYPER NOS AKTIF: TABRAK SEMUA OBJEK!! 🔥", "#ff3333");
+                    } else if (rainbowBall.y > 550) {
+                        rainbowBall = null;
+                    }
+                }
+
+                // TIMER DURASI HYPER NOS (4 DETIK)
+                if (hyperNosActive) {
+                    scrollSpeed = baseSpeed * 2.2; // Kecepatan super kencang!
+                    if (Date.now() - hyperNosTimer > 4000) {
+                        hyperNosActive = false;
+                        scrollSpeed = baseSpeed;
+                    }
+                } else {
+                    // MANUAL REGULAR NOS SYSTEM
+                    if (upgrades.nos && (keys['shift'] || keys[' ']) && nosEnergy > 0) {
+                        nosActive = true; scrollSpeed = baseSpeed * 1.6; nosEnergy -= 0.7; lastNosUsedTime = Date.now();
+                    } else {
+                        nosActive = false; scrollSpeed = baseSpeed;
+                        if (upgrades.nos && nosEnergy < maxNosEnergy && Date.now() - lastNosUsedTime > 3000) {
+                            nosEnergy += 0.3; if (nosEnergy > maxNosEnergy) nosEnergy = maxNosEnergy;
+                        }
+                    }
+                }
+
+                if (upgrades.nos) document.getElementById("nos-bar-val").style.width = `${nosEnergy}%`;
+
+                // REGENERASI AUTOMATIC ARMOR COOLDOWN
+                if (upgrades.bumper && !armorReady) {
+                    let timePassed = Date.now() - armorCooldownTimer;
+                    let pct = Math.min(100, (timePassed / maxArmorCooldown) * 100);
+                    document.getElementById("armor-bar-val").style.width = `${pct}%`;
+                    document.getElementById("armor-text").innerText = `ARMOR REGEN (${Math.ceil((maxArmorCooldown-timePassed)/1000)}s)`;
+                    document.getElementById("armor-text").style.color = "#ffeb3b";
+                    
+                    if (timePassed >= maxArmorCooldown) {
+                        armorReady = true;
+                        document.getElementById("armor-bar-val").style.width = "100%";
+                        document.getElementById("armor-text").innerText = "ARMOR READY";
+                        document.getElementById("armor-text").style.color = "#2ecc71";
+                    }
+                } else if (!upgrades.bumper) {
+                    document.getElementById("armor-bar-val").style.width = "0%";
+                    document.getElementById("armor-text").innerText = "NO ARMOR";
+                }
+
+                if (isInvulnerable && Date.now() - invulnerableTimer > 3000) {
+                    isInvulnerable = false;
+                }
+
+                score += scrollSpeed / 20;
+                if (baseSpeed < maxScrollSpeed) baseSpeed += 0.002;
+                lineOffset += scrollSpeed; if (lineOffset >= 40) lineOffset = 0;
+
+                // SPAWNING ITEM COIN KUNING
+                if (Math.random() < 0.012 && coinsArray.length < 3) {
+                    let lanes = [85, 165, 245, 325];
+                    coinsArray.push({ x: lanes[Math.floor(Math.random() * lanes.length)], y: -30, w: 15, h: 15 });
+                }
+
+                coinsArray.forEach((cn, idx) => {
+                    cn.y += scrollSpeed;
+                    if (player.x < cn.x + cn.w && player.x + player.w > cn.x && player.y < cn.y + cn.h && player.y + player.h > cn.y) {
+                        coinsCollected += 5; coinsArray.splice(idx, 1); playCoinSound();
+                    }
+                    if (cn.y > 550) coinsArray.splice(idx, 1);
+                });
+
+                // SPAWNING OBSTACLES
+                if (Math.random() < 0.016 && obstacles.length < 4) {
+                    let lanes = [75, 155, 235, 315]; let randomLane = lanes[Math.floor(Math.random() * lanes.length)];
+                    if(Math.random() > 0.75) {
+                        obstacles.push({ x: randomLane - 10, y: -60, w: 60, h: 25, type: 'log', color: '#8b5a2b' });
+                    } else {
+                        let carColors = ['#ff33cc', '#00f2ff', '#ffeb3b', '#9b59b6'];
+                        obstacles.push({ x: randomLane, y: -60, w: 30, h: 55, type: 'car', color: carColors[Math.floor(Math.random() * carColors.length)], npcSpeed: 1 + Math.random() * 3 });
+                    }
+                }
+
+                // INTERAKSI TABRAKAN OBSTACLES (LOGIKA MENEROBOS SAAT HYPER NOS)
+                obstacles.forEach((obs, index) => {
+                    obs.y += (obs.type === 'car') ? (scrollSpeed - obs.npcSpeed) : scrollSpeed;
+
+                    if (player.x < obs.x + obs.w && player.x + player.w > obs.x && player.y < obs.y + obs.h && player.y + player.h > obs.y) {
+                        if (hyperNosActive) {
+                            // MENEROBOS JALUR & MENGHANCURKAN OBJEK!
+                            obstacles.splice(index, 1);
+                            playRetroCrashSound();
+                        } else if (!isInvulnerable) { 
+                            if (armorReady) {
+                                armorReady = false; isInvulnerable = true;
+                                invulnerableTimer = Date.now(); armorCooldownTimer = Date.now();
+                                obstacles.splice(index, 1); playRetroCrashSound();
+                                showToast("🛡️ TAMENG JALUR PECAH! Kebal Aktif 3 Detik!", "#ff9900");
+                            } else {
+                                playRetroCrashSound(); triggerGameOver();
+                            }
+                        }
+                    }
+                    if (obs.y > 550) obstacles.splice(index, 1);
+                });
+
+                environment.forEach(env => { env.y += scrollSpeed; if (env.y > 500) env.y = -50; });
+            } else {
+                if (keys[' '] || keys['enter']) location.reload();
+            }
+
+            draw();
+            document.getElementById("dist-val").innerText = Math.floor(score);
+            document.getElementById("game-coins").innerText = coinsCollected;
+            document.getElementById("speed-val").innerText = Math.floor(scrollSpeed * 15);
+            requestAnimationFrame(update);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            let cGrass = "#1e3f20", cRoad = "#2c3e50", cLine = "#ffffff", cSide = "#ecf0f1";
+            if (activeSkins.map === 'city') { cGrass = "#0b0b14"; cRoad = "#341f97"; cLine = "#00f2ff"; cSide = "#ff3366"; }
+            if (activeSkins.map === 'bridge') { cGrass = "#0052d4"; cRoad = "#1e272e"; cLine = "#f1c40f"; cSide = "#ffffff"; }
+            if (activeSkins.map === 'space') { cGrass = "#050508"; cRoad = "#0d0d14"; cLine = "#9b59b6"; cSide = "#00f2ff"; }
+
+            ctx.fillStyle = cGrass; ctx.fillRect(0, 0, 50, 500); ctx.fillRect(400, 0, 50, 500);
+            
+            if (activeSkins.map === 'space') {
+                ctx.fillStyle = "#fff";
+                for(let s=0; s<15; s++) { let sy = (s*45 + lineOffset)%500; ctx.fillRect(15 + (s%2)*15, sy, 2, 2); ctx.fillRect(420 + (s%2)*15, sy, 2, 2); }
+            }
+
+            ctx.fillStyle = cRoad; ctx.fillRect(50, 0, 350, 500);
+            ctx.fillStyle = cSide; ctx.fillRect(50, 0, 4, 500); ctx.fillRect(396, 0, 4, 500);
+
+            ctx.fillStyle = cLine; let lanesX = [137, 225, 312];
+            lanesX.forEach(lx => {
+                for (let i = -1; i < 14; i++) { ctx.fillRect(lx, (i * 40) + lineOffset, 3, 20); }
+            });
+
+            if (activeSkins.map === 'classic' || activeSkins.map === 'bridge') {
+                environment.forEach(env => {
+                    ctx.fillStyle = (activeSkins.map === 'bridge') ? "#f39c12" : "#8b5a2b"; ctx.fillRect(env.x + 8, env.y + 20, 6, 15);
+                    ctx.fillStyle = (activeSkins.map === 'bridge') ? "#e67e22" : "#27ae60"; ctx.fillRect(env.x, env.y, 22, 22);
+                });
+            }
+
+            // RENDERING BOLA PELANGI KELIP WARNA-WARNI (RAINBOW EFFECT)
+            if (rainbowBall) {
+                let rHue = (Date.now() / 4) % 360;
+                ctx.fillStyle = `hsl(${rHue}, 100%, 60%)`;
+                ctx.shadowColor = `hsl(${rHue}, 100%, 60%)`;
+                ctx.shadowBlur = 15;
+                ctx.beginPath();
+                ctx.arc(rainbowBall.x, rainbowBall.y, rainbowBall.radius + Math.sin(rainbowBall.pulse)*2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0; // Reset
+            }
+
+            // RENDER KOIN KUNING
+            coinsArray.forEach(cn => {
+                ctx.fillStyle = "#f1c40f"; ctx.fillRect(cn.x, cn.y, cn.w, cn.h);
+                ctx.fillStyle = "#fff"; ctx.fillRect(cn.x + 3, cn.y + 3, 4, 4); 
+            });
+
+            // RENDERING OBSTACLES
+            obstacles.forEach(obs => {
+                ctx.fillStyle = obs.color;
+                if (obs.type === 'car') {
+                    ctx.fillRect(obs.x, obs.y, obs.w, obs.h); ctx.fillStyle = "#111";
+                    ctx.fillRect(obs.x - 2, obs.y + 6, 2, 10); ctx.fillRect(obs.x + obs.w, obs.y + 6, 2, 10);
+                    ctx.fillRect(obs.x - 2, obs.y + 38, 2, 10); ctx.fillRect(obs.x + obs.w, obs.y + 38, 2, 10);
+                    ctx.fillStyle = "#000"; ctx.fillRect(obs.x + 4, obs.y + 12, obs.w - 8, 10);
+                } else {
+                    ctx.fillRect(obs.x, obs.y, obs.w, obs.h); ctx.fillStyle = "#5d4037"; ctx.fillRect(obs.x + 10, obs.y + 4, 5, 5);
+                }
+            });
+
+            // RENDERING MOBIL PLAYER
+            if (!gameOverState) {
+                if (isInvulnerable && Math.floor(Date.now() / 100) % 2 === 0) {
+                    return; 
+                }
+
+                let carColor = "#e74c3c"; 
+                if (activeSkins.car === 'blue') carColor = "#0984e3";
+                if (activeSkins.car === 'yellow') carColor = "#f1c40f";
+
+                if (activeSkins.neon !== 'none') {
+                    ctx.shadowColor = (activeSkins.neon === 'green') ? "#2ecc71" : "#e84393";
+                    ctx.shadowBlur = 15; ctx.fillStyle = (activeSkins.neon === 'green') ? "rgba(46,204,113,0.4)" : "rgba(232,67,147,0.4)";
+                    ctx.fillRect(player.x - 4, player.y - 4, player.w + 8, player.h + 8);
+                }
+                
+                // 🔥 LOGIKA VISUAL SEMBURAN API NOS (BIRU BIASA vs MERAH HYPER)
+                if (hyperNosActive) {
+                    ctx.fillStyle = "#ff2200"; // Semburan Api Hyper Merah Membara
+                    ctx.shadowColor = "#ff2200"; ctx.shadowBlur = 10;
+                    ctx.fillRect(player.x + 2, player.y + player.h, 8, 18 + Math.random()*12); 
+                    ctx.fillRect(player.x + player.w - 12, player.y + player.h, 8, 18 + Math.random()*12);
+                } else if (nosActive) {
+                    ctx.fillStyle = "#00f2ff"; // Api NOS Biru Normal
+                    ctx.fillRect(player.x + 4, player.y + player.h, 6, 12 + Math.random()*8); ctx.fillRect(player.x + player.w - 10, player.y + player.h, 6, 12 + Math.random()*8);
+                }
+
+                ctx.fillStyle = carColor; ctx.fillRect(player.x, player.y, player.w, player.h);
+                ctx.shadowBlur = 0; 
+
+                ctx.fillStyle = "#111";
+                ctx.fillRect(player.x - 3, player.y + 6, 3, 12); ctx.fillRect(player.x + player.w, player.y + 6, 3, 12);
+                ctx.fillRect(player.x - 3, player.y + 38, 3, 12); ctx.fillRect(player.x + player.w, player.y + 38, 3, 12);
+                ctx.fillStyle = "#dff9fb"; ctx.fillRect(player.x + 4, player.y + 14, player.w - 8, 8); ctx.fillRect(player.x + 4, player.y + 38, player.w - 8, 5);
+                ctx.fillStyle = "#f1c40f"; ctx.fillRect(player.x + 3, player.y, 5, 3); ctx.fillRect(player.x + player.w - 8, player.y, 5, 3);
+            }
+
+            // MODAL LAYAR GAME OVER
+            if (gameOverState) {
+                ctx.fillStyle = "rgba(0, 0, 0, 0.75)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = "#111116"; ctx.strokeStyle = "#ff3366"; ctx.lineWidth = 4;
+                ctx.fillRect(50, 150, 350, 180); ctx.strokeRect(50, 150, 350, 180);
+                ctx.fillStyle = "#ff3366"; ctx.font = "bold 28px 'Courier New'"; ctx.textAlign = "center"; ctx.fillText("CRASHED!", 225, 195);
+                ctx.fillStyle = "#ffffff"; ctx.font = "14px 'Courier New'"; ctx.fillText(`Jarak Tempuh: ${Math.floor(score)} meter`, 225, 230);
+                ctx.fillStyle = "#ffeb3b"; ctx.fillText(`Koin Terkumpul: +${coinsCollected} Koin`, 225, 250);
+                ctx.fillStyle = "#888"; ctx.font = "bold 11px 'Courier New'"; ctx.fillText("[ TEKAN SPACE ATAU ENTER UNTUK RESTART ]", 225, 295);
+            }
+        }
+
+        function triggerGameOver() {
+            gameOverState = true; let finalDist = Math.floor(score);
+            if (finalDist > highscore) { highscore = finalDist; localStorage.setItem("turbo_topdown_highscore", highscore); }
+            totalCoins += coinsCollected; localStorage.setItem("turbo_coins", totalCoins);
+        }
+
+        window.addEventListener("keydown", e => {
+            let k = e.key.toLowerCase(); keys[k] = true;
+            if ((e.key === " " || e.key === "Shift") && gameActive && !gameOverState) e.preventDefault();
+        });
+        window.addEventListener("keyup", e => keys[e.key.toLowerCase()] = false);
+    </script>
+</body>
+</html>
